@@ -144,17 +144,11 @@ server <- function(input, output) {
       
       plots[[i]] <- p
     }
-    n <- length(plots)
-    if(n == 1 | 2) {
-      ncol <- 1
-    } else if(n < 2) {
-      ncol <- 2
-    }
     
     box <- fluidRow(
       column(width=12, style = "padding: 0px;", 
              lapply(plots, function(p) {
-               div(style = paste0("width: ", 100/ncol, "%; padding: 10px; display: inline-block;"),
+               div(style = paste0("width: ", 100, "%; padding: 10px; display: inline-block;"),
                    p)
              })
       )
