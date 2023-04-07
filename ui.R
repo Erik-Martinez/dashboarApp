@@ -1,10 +1,17 @@
 library(shinydashboard)
+library(gridExtra)
+library(shinyWidgets) #opciones extra UI
 library(leaflet) #maps
 library(shinyjs) # simbolos de carga
 library(shinycssloaders)#simbolos de carga 2
+library(plotly)#graficos interactivos
 
 # valores datos
 year_list <-list("Serie temporal-Temporalidad"=77, "2005"=2005, "2006"=2006, "2007"=2007, 
+                 "2008"=2008, "2009"=2009, "2010"=2010, "2011"=2011, "2012"=2012,
+                 "2013"=2013, "2014"=2014, "2015"=2015, "2016"=2016, "2017"=2017,
+                 "2018"=2018, "2019"=2019, "2020"=2020, "2021"=2021, "2022"=2022)
+year_list1 <-list("2005"=2005, "2006"=2006, "2007"=2007, 
                  "2008"=2008, "2009"=2009, "2010"=2010, "2011"=2011, "2012"=2012,
                  "2013"=2013, "2014"=2014, "2015"=2015, "2016"=2016, "2017"=2017,
                  "2018"=2018, "2019"=2019, "2020"=2020, "2021"=2021, "2022"=2022)
@@ -41,7 +48,7 @@ ui <- dashboardPage(
                 menuItem("Análisis EPA",tabName = "menu1" ,
                          menuSubItem('Información', tabName = 'menu_info_epa'),
                          menuSubItem('Tipos de contrato', tabName = 'menu_contra_epa'),
-                         menuSubItem('Sub Menu 3', tabName = 'menu13')
+                         menuSubItem('Sector de ocupación', tabName = 'menu_sector_epa')
                 ),
                 
                 menuItem("menu2_",tabName = "menu2" ,
@@ -58,14 +65,17 @@ ui <- dashboardPage(
       tabItem("menu_info_epa",h1("Pagina 1 en construccion")),
       tabItem("menu_contra_epa",h1("Tipos de contrato"),
               fluidRow(box( width = 2,
-                            title = "Inputs", status = "warning",
-                            checkboxInput("incluir_na", "Incluir NA", 1),
+                            title = "Inputs", status = "warning", background = "blue",
+                            switchInput("incluir_na", label = "Incluir otos(NA)", 
+                                        labelWidth = "80px", onLabel = "Si",
+                                        offLabel = "No", onStatus = "success", 
+                                        offStatus = "danger", value= 1),
                             selectInput("select_year", h3("Año"), choices = year_list),
                             selectInput("select_trim", h3("Trimestre"), choices=trim_list),
                             selectInput("select_prov", h3("Provincia"), choices = prov_list),
                             selectInput("select_vari", h3("Dividido por:"), 
                                         choices = list_vari)),
-                       box(width=10, title="Proporción según tipo de contrato", 
+                       box(width=10, title="Proporción de población activa según tipo de contrato", 
                            solidHeader = T, collapsible = F,
                            shinycssloaders::withSpinner(plotOutput("plot_contra", 
                                                                    height = 500)), 
@@ -77,7 +87,31 @@ ui <- dashboardPage(
                                                     dataTableOutput("tabla_contra"))))
               
       ),
-      tabItem("menu13",h1("Pagina 3 en construccion")),
+      
+      tabItem("menu_sector_epa",h1("Sector de ocupación"),
+              fluidRow(box( width = 3,
+                            title = "Inputs", status = "warning", background = "blue",
+                            selectInput("select_year1", h3("Año"), choices = year_list1),
+                            selectInput("select_trim1", h3("Trimestre"), choices=trim_list),
+                            selectInput("select_prov1", h3("Provincia"), choices = prov_list),
+                            selectInput("select_vari1", h3("Dividido por:"), 
+                                        choices = list_vari)),
+                       box(width=9, title="Proporción de población activa según tipo de contrato", 
+                           solidHeader = T, collapsible = F,
+                           shinycssloaders::withSpinner(uiOutput("plots")),
+                           heightFill =T ), width=12),
+              
+              fluidRow(column(width=2), column(width=10,
+                                               box(width=10,
+                                                   title=div("Datos"),
+                                                   dataTableOutput("tabla_ocupa"))))
+              
+             
+              
+              
+              
+              
+              ),
       
       tabItem("menu21",h1("Pagina 1 en construccion")),
       tabItem("menu22",h1("Pagina 2 en construccion")),
