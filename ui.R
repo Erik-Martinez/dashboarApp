@@ -7,7 +7,7 @@ library(shinycssloaders)#simbolos de carga 2
 library(plotly)#graficos interactivos
 
 # valores datos
-year_list <-list("Serie temporal-Temporalidad"=77, "2005"=2005, "2006"=2006, "2007"=2007, 
+year_list <-list("Serie temporal"=77, "2005"=2005, "2006"=2006, "2007"=2007, 
                  "2008"=2008, "2009"=2009, "2010"=2010, "2011"=2011, "2012"=2012,
                  "2013"=2013, "2014"=2014, "2015"=2015, "2016"=2016, "2017"=2017,
                  "2018"=2018, "2019"=2019, "2020"=2020, "2021"=2021, "2022"=2022)
@@ -66,7 +66,7 @@ ui <- dashboardPage(
       tabItem("menu_contra_epa",h1("Tipos de contrato"),
               fluidRow(box( width = 2,
                             title = "Inputs", status = "warning", background = "blue",
-                            switchInput("incluir_na", label = "Incluir otos(NA)", 
+                            switchInput("incluir_na", label = "Incluir otros(NA)", 
                                         labelWidth = "80px", onLabel = "Si",
                                         offLabel = "No", onStatus = "success", 
                                         offStatus = "danger", value= 1),
@@ -75,9 +75,8 @@ ui <- dashboardPage(
                             selectInput("select_prov", h3("Provincia"), choices = prov_list),
                             selectInput("select_vari", h3("Dividido por:"), 
                                         choices = list_vari)),
-                       box(width=10, title="Proporción de población activa según tipo de contrato", 
-                           solidHeader = T, collapsible = F,
-                           shinycssloaders::withSpinner(plotOutput("plot_contra", 
+                       box(width=10, solidHeader = T, collapsible = F,
+                           shinycssloaders::withSpinner(plotlyOutput("plot_contra", 
                                                                    height = 500)), 
                            heightFill = TRUE), width=12),
               
@@ -91,14 +90,13 @@ ui <- dashboardPage(
       tabItem("menu_sector_epa",h1("Sector de ocupación"),
               fluidRow(box( width = 2,
                             title = "Inputs", status = "warning", background = "blue",
-                            selectInput("select_year1", h3("Año"), choices = year_list1),
+                            selectInput("select_year1", h3("Año"), choices = year_list),
                             selectInput("select_trim1", h3("Trimestre"), choices=trim_list),
                             selectInput("select_prov1", h3("Provincia"), choices = prov_list),
                             selectInput("select_vari1", h3("Dividido por:"), 
                                         choices = list_vari)),
-                       box(width=10, title="Proporción de población activa según tipo de contrato", 
-                           solidHeader = T, collapsible = F,
-                           shinycssloaders::withSpinner(uiOutput("plots")),
+                       box(width=10, solidHeader = T, collapsible = F,
+                           shinycssloaders::withSpinner(uiOutput("plots_ocupa")),
                            heightFill =T ), width=12),
               
               fluidRow(column(width=2), column(width=10,
