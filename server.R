@@ -1,12 +1,15 @@
 library(shinydashboard)
 library(tidyverse)
-library(ggplot2)
+library(data.table) # funcion fread() para cargar los datos pesados
 library(gridExtra)#combinar graficas
 library(shinyWidgets) #opciones extra UI
-library(leaflet) #maps
 library(shinyjs) # simbolos de carga
 library(shinycssloaders)#simbolos de carga 2
 library(plotly)#graficos interactivos
+#grafica maps
+library(geojsonio)# cargar datos mapa
+library(htmltools)  # Used for constructing map labels using HTML
+library(leaflet)    # The map-making package
 
 
 server <- function(input, output) {
@@ -34,19 +37,38 @@ server <- function(input, output) {
               "Segunda etapa de educación secundaria. Orientación general", 
                "Segunda etapa de educación secundaria. Orientación profesional (incluye educación postsecundaria no superior)", 
                  "Educación superior")
-  
-  
+  provincia <- c("Araba", "Albacete", "Alacant", "Almería", "Ávila", "Badajoz", 
+                    "Illes Balears", "Barcelona", "Burgos", "Cáceres", "Cádiz", "Castelló", 
+                    "Ciudad Real", "Córdoba", "A Coruña", "Cuenca", "Girona", "Granada", 
+                    "Guadalajara", "Gipuzkoa", "Huelva", "Huesca", "Jaén", "León", 
+                    "Lleida", "La Rioja", "Lugo", "Madrid", "Málaga", "Murcia", "Navarra", 
+                    "Ourense", "Asturias", "Palencia", "Las Palmas", "Pontevedra", "Salamanca", 
+                    "Santa Cruz de Tenerife", "Cantabria", "Segovia", "Sevilla", "Soria", 
+                    "Tarragona", "Teruel", "Toledo", "València", "Valladolid", "Bizkaia", 
+                    "Zamora", "Zaragoza", "Ceuta", "Melilla")
+
   #carga de datos
   
   data <-read.csv("muestra_epa.csv") #cambiar
   data1 <- data %>% 
+    mutate(PROV = factor(PROV, labels = provincia)) %>% 
     mutate(EDAD5 = factor(EDAD5, labels = age)) %>% 
     mutate(SEXO1 = factor(SEXO1, labels=c("1.Hombre", "2.Mujer"))) %>% 
     mutate(NAC1 = factor(NAC1, labels=c("1.Española", "2.Española y doble nacionalidad", "3.Extranjera"))) %>% 
     mutate(NFORMA = factor(NFORMA)) %>% 
     mutate(OCUP1 = factor(OCUP1,labels=cate_ocu)) %>%
+    mutate(HORASP = ifelse(HORASP != 9999,
+                           as.numeric(str_sub(HORASP, 1, -3)) + as.numeric(str_sub(HORASP, -2)) / 60,
+                           NA)) %>% 
+    mutate(HORASH=ifelse(HORASH != 9999,
+                  as.numeric(str_sub(HORASH, 1, -3)) + as.numeric(str_sub(HORASH, -2)) / 60,
+                  NA)) %>% 
     filter(AOI==3 | AOI==4)%>%
-    select(year,trim,PROV,EDAD5,SEXO1,DUCON1,NFORMA, NAC1, OCUP1)
+    select(year,trim,comu,PROV,EDAD5,SEXO1,DUCON1,NFORMA, NAC1, OCUP1, HORASP, HORASH)
+  
+  # Carga los datos mapa
+    # Obtención de los datos :https://public.opendatasoft.com/explore/dataset/provincias-espanolas/export/?sort=provincia&dataChart=eyJxdWVyaWVzIjpbeyJjb25maWciOnsiZGF0YXNldCI6InByb3ZpbmNpYXMtZXNwYW5vbGFzIiwib3B0aW9ucyI6eyJzb3J0IjoicHJvdmluY2lhIn19LCJjaGFydHMiOlt7ImFsaWduTW9udGgiOnRydWUsInR5cGUiOiJjb2x1bW4iLCJmdW5jIjoiQ09VTlQiLCJzY2llbnRpZmljRGlzcGxheSI6dHJ1ZSwiY29sb3IiOiIjRkY1MTVBIn1dLCJ4QXhpcyI6ImNjYWEiLCJtYXhwb2ludHMiOjUwLCJzb3J0IjoiIn1dLCJ0aW1lc2NhbGUiOiIiLCJkaXNwbGF5TGVnZW5kIjp0cnVlLCJhbGlnbk1vbnRoIjp0cnVlfQ%3D%3D&location=6,41.20346,-4.14185&basemap=jawg.light
+  provin <- geojson_read("provincias-espanolas.geojson", what = "sp")
  
 #----------------------------------------------------------#   
   
@@ -95,7 +117,7 @@ server <- function(input, output) {
         ggtitle("Proporción de población activa según tipo de contrato")}
     else {
       ggplot(data_graf(), aes(x=year, y= freq, color=vari_div))+
-        geom_line(size=0.5)+
+        geom_line(linewidth =0.5)+
         geom_point(size=1)+
         geom_text(aes(label=freq), vjust=-3, position= position_dodge(.9), size=4)+
         scale_y_continuous(labels = scales::percent)+
@@ -196,7 +218,68 @@ server <- function(input, output) {
   })
   
 
+#---------------------------------------------------------------#  
+  
+  #gráficas horas promedios y mapas
+  
+  
+  data_graf2 <- reactive({
+    
+    Sys.sleep(1)
+    
+    #datos 
+    data_NA1 <- data1 %>% 
+      mutate(x=if(input$tipo_hora=="De contrato"){x=HORASP}else{HORASH}) %>% 
+      select(year,trim,PROV,EDAD5,SEXO1,HORASP, HORASH, x, comu)
+    
+    #filtrar
+    data_NA1 <- data_NA1 %>% 
+      filter(year==input$select_year2) %>% 
+      filter(if(input$select_trim2!=77){trim == input$select_trim2} else {TRUE}) %>%
+      filter(!is.na(x)) %>% 
+      group_by(comu, PROV) %>%
+      summarise(prom=ifelse(input$med_mediana == "Media", round(mean(x),2),
+                            round(median(x),2))) %>%
+      mutate(provincia=PROV) %>% 
+      select(comu, provincia, prom)
+    
+    # unimos datos
+    provin_horas <- merge(provin@data, data_NA1, by = "provincia", all.x = TRUE)
+    
+    # recuperar el formato especial
+    provin_merged <- merge(provin, provin_horas, by = "provincia")
+    provin_merged
+ 
+  })
+  
 
+  
+  # Crea el mapa interactivo
+  output$plot_mapHoras <- renderLeaflet({
+    
+    colores <- colorFactor(palette = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "yellow",
+                                       "#9a352c", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+                                       "#aec7e8", "#ffbb78", "#ff0000", "#ff9896", "#c5b0d5",
+                                       "#c7c7c7", "#dbdb8d", "#9edae5", "#f7b6d2", "#bcbd22"), 
+                           domain = unique(data_graf2()@data$comu))
+    
+    #creacion de las etiquetas en formato html
+    labels <- sprintf(
+      "<strong>%s</strong><br/>%g horas / semana",
+      data_graf2()@data$provincia, data_graf2()@data$prom
+    ) %>% lapply(htmltools::HTML)
+    
+    
+    leaflet(data_graf2()) %>%
+      addProviderTiles(providers$CartoDB.PositronNoLabels) %>% 
+      addPolygons(fillColor = ~colores(comu), color = "#000000", weight = 1,
+                  smoothFactor = 0.5, opacity = 1, fillOpacity = 0.7,
+                  highlightOptions = highlightOptions(color = "yellow", weight = 2,
+                                                      bringToFront = TRUE),
+                  label =  labels)#labels
+
+    
+  })
 
   
  
