@@ -70,6 +70,11 @@ ui <- dashboardPage(
     useShinyjs(), #carga de librería dentro de la sección
     tabItems(
       tabItem("menu_info_epa",h1("Pagina 1 en construccion")),
+      
+  #----------------------------------------------------------#   
+      
+    #gráfica tipos contratos EPA (id=0)
+  
       tabItem("menu_contra_epa",h1("Tipos de contrato"),
               fluidRow(width=12,
                        box( width = 2,
@@ -94,6 +99,10 @@ ui <- dashboardPage(
               
       ),
       
+  #---------------------------------------------------------------#  
+  
+    #grafica sector de ocupación (id=1)
+  
       tabItem("menu_sector_epa",h1("Sector de ocupación"),
               fluidRow(width=12,
                        box( width = 3,
@@ -120,7 +129,11 @@ ui <- dashboardPage(
               
               
               ),
-      
+  
+  #---------------------------------------------------------------#  
+  
+    #gráficas horas promedios y mapas (id=2)    
+  
       tabItem("menu_horas",h1("Estadísticas de horas de trabajo"),
               fluidRow(width=12,
                        box( width = 3,
@@ -138,22 +151,36 @@ ui <- dashboardPage(
                            shinycssloaders::withSpinner(leafletOutput("plot_mapHoras"))))
               
       ),
+  
+  #---------------------------------------------------------------#  
+  
+    #infobox trabajo publico (id)
       
       tabItem("menu_publico",h1("Estadísticas de trabajdores del sector público"),
               fluidRow(width=12,
-                       box( width = 3,
+                       box(width = 3,
                             title = "Inputs", status = "warning", background = "blue",
-                            selectInput("select_year2", h3("Año"), choices = year_listMod),
-                            selectInput("select_trim2", h3("Trimestre"), choices=trim_list),
-                            radioGroupButtons("med_mediana",label = "Horas de trabajo semanal",
-                                              choices = c("Media", "Mediana"),justified = TRUE,
-                                              status = "primary"),
-                            radioGroupButtons("tipo_hora",label = "Tipo horas de trabajo semanal",
-                                              choices = c("De contrato", "Reales"),justified = TRUE,
-                                              status = "primary")
-                       )
+                            selectInput("select_year3", h3("Año"), choices = year_listMod),
+                            selectInput("select_trim3", h3("Trimestre"), choices=trim_list),
+                            selectInput("select_prov3", h3("Provincia"), choices = prov_list),
+                            radioGroupButtons( inputId = "select_sexo", label = h3("Sexo"),
+                                               choices = c("Ambos", "Hombre", "Mujer"),
+                                               justified = TRUE)),
+                       box(width = 4, title = "% de trabajores por administración"),
+                       
+                       box(width = 4, title = "% de trabajadors por nivel de estudio")
+                       
               
-      )),
+      ),
+      fluidRow(width=12,
+               column(width=2),
+               column(width=3, infoBox(width = 3, title = "% de trabajadores publicos")),
+               column(width=3, infoBox(width = 3, title = "% de trabajadores temporales")),
+               column(width=3, infoBox(width = 3, title = "% Horas medias de contrato"))
+               
+               )
+      
+      ),
       
       tabItem("menu21",h1("Pagina 1 en construccion")),
       tabItem("menu22",h1("Pagina 2 en construccion")),

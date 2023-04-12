@@ -61,6 +61,9 @@ server <- function(input, output) {
                     "Santa Cruz de Tenerife", "Cantabria", "Segovia", "Sevilla", "Soria", 
                     "Tarragona", "Teruel", "Toledo", "València", "Valladolid", "Bizkaia", 
                     "Zamora", "Zaragoza", "Ceuta", "Melilla")
+  admi <- c("No sabe", "Administración central", "Administración de la Seguridad Social",
+            "Administración de Comunidad Autónoma", "Administración local",
+            "Empresas públicas e Instituciones financieras públicas", "Otro tipo")
 
   #carga de datos
   
@@ -73,6 +76,7 @@ server <- function(input, output) {
     mutate(NFORMA = factor(NFORMA)) %>% 
     mutate(OCUP1 = factor(OCUP1,labels=cate_ocu)) %>%
     mutate(ACT1 = factor(ACT1, labels = cate_situ)) %>% 
+    mutate(SP = factor(SP, labels = admi)) %>% 
     mutate(HORASP = ifelse(HORASP != 9999,
                            as.numeric(str_sub(HORASP, 1, -3)) + as.numeric(str_sub(HORASP, -2)) / 60,
                            NA)) %>% 
@@ -88,7 +92,7 @@ server <- function(input, output) {
  
 #----------------------------------------------------------#   
   
-  #grafica tipos contratos EPA
+  #grafica tipos contratos EPA (id=0)
 
   
   data_graf <- reactive({
@@ -150,7 +154,7 @@ server <- function(input, output) {
   
 #---------------------------------------------------------------#  
   
-  #grafica sector de ocupación
+  #grafica sector de ocupación (id=1)
   
     
   data_graf1 <- reactive({
@@ -236,7 +240,7 @@ server <- function(input, output) {
 
 #---------------------------------------------------------------#  
   
-  #gráficas horas promedios y mapas
+  #gráficas horas promedios y mapas (id=2)
   
   
   data_graf2 <- reactive({
@@ -300,7 +304,7 @@ server <- function(input, output) {
 
   #---------------------------------------------------------------#  
   
-  #infobox trabajo publico
+  #infobox trabajo publico (id=3)
   
   data_graf3 <- reactive({
     
@@ -308,8 +312,7 @@ server <- function(input, output) {
     
     #datos 
     data_NA1 <- data1 %>% 
-      mutate(x=if(input$tipo_hora=="De contrato"){x=HORASP}else{HORASH}) %>% 
-      select(year,trim,PROV,EDAD5,SEXO1,HORASP, HORASH, x, comu)
+      select(year,trim,PROV,EDAD5,SEXO1,ACT1, SP, DUCON1)
   })
  
   
