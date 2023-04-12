@@ -28,6 +28,21 @@ server <- function(input, output) {
                 y la minería, excepto operadores de instalaciones y maquinaria" ,
                 "Operadores de instalaciones y maquinaria, y montadores",
                 "Ocupaciones elementales. Trabajadores no cualificados")
+  cate_situ <- c("Agricultura, ganadería, silvicultura y pesca",
+                 "Industria de la alimentación, textil, cuero, madera y papel",
+                 "Industrias extractivas, refino de petróleo, industria química, 
+                 farmacéutica, industria del caucho y materias plásticas, 
+                 suministro energía eléctrica, gas, vapor y aire acondicionado, 
+                 suministro de agua, gestión de residuos. Metalurgia",
+                 "Construcción de maquinaria, equipo eléctrico y material de transporte. 
+                 Instalación y reparación industrial","Construcción",
+                 "Comercio al por mayor y al por menor y sus instalaciones y reparaciones. 
+                 Reparación de automóviles, hostelería",
+                 "Transporte y almacenamiento. Información y comunicaciones",
+                 "Intermediación financiera, seguros, actividades inmobiliarias, 
+                 servicios profesionales, científicos, administrativos y otros",
+                 "Administración Pública, educación y actividades sanitarias",
+                 "Otros servicios.")
   age <- c("0 a 4 años", "5 a 9 años", "10 a 15 años", "16 a 19 años", 
            "20 a 24 años", "25 a 29 años", "30 a 34 años", "35 a 39 años", 
            "40 a 44 años", "45 a 49 años", "50 a 54 años", "55 a 59 años", 
@@ -57,6 +72,7 @@ server <- function(input, output) {
     mutate(NAC1 = factor(NAC1, labels=c("1.Española", "2.Española y doble nacionalidad", "3.Extranjera"))) %>% 
     mutate(NFORMA = factor(NFORMA)) %>% 
     mutate(OCUP1 = factor(OCUP1,labels=cate_ocu)) %>%
+    mutate(ACT1 = factor(ACT1, labels = cate_situ)) %>% 
     mutate(HORASP = ifelse(HORASP != 9999,
                            as.numeric(str_sub(HORASP, 1, -3)) + as.numeric(str_sub(HORASP, -2)) / 60,
                            NA)) %>% 
@@ -64,7 +80,7 @@ server <- function(input, output) {
                   as.numeric(str_sub(HORASH, 1, -3)) + as.numeric(str_sub(HORASH, -2)) / 60,
                   NA)) %>% 
     filter(AOI==3 | AOI==4)%>%
-    select(year,trim,comu,PROV,EDAD5,SEXO1,DUCON1,NFORMA, NAC1, OCUP1, HORASP, HORASH)
+    select(year,trim,comu,PROV,EDAD5,SEXO1,DUCON1,NFORMA, NAC1, OCUP1, ACT1, HORASP, HORASH)
   
   # Carga los datos mapa
     # Obtención de los datos :https://public.opendatasoft.com/explore/dataset/provincias-espanolas/export/?sort=provincia&dataChart=eyJxdWVyaWVzIjpbeyJjb25maWciOnsiZGF0YXNldCI6InByb3ZpbmNpYXMtZXNwYW5vbGFzIiwib3B0aW9ucyI6eyJzb3J0IjoicHJvdmluY2lhIn19LCJjaGFydHMiOlt7ImFsaWduTW9udGgiOnRydWUsInR5cGUiOiJjb2x1bW4iLCJmdW5jIjoiQ09VTlQiLCJzY2llbnRpZmljRGlzcGxheSI6dHJ1ZSwiY29sb3IiOiIjRkY1MTVBIn1dLCJ4QXhpcyI6ImNjYWEiLCJtYXhwb2ludHMiOjUwLCJzb3J0IjoiIn1dLCJ0aW1lc2NhbGUiOiIiLCJkaXNwbGF5TGVnZW5kIjp0cnVlLCJhbGlnbk1vbnRoIjp0cnVlfQ%3D%3D&location=6,41.20346,-4.14185&basemap=jawg.light
@@ -142,8 +158,8 @@ server <- function(input, output) {
     Sys.sleep(1)
     
     data_NA1 <- data1 %>%  
-      #mutate(OCUP1=factor(OCUP1,labels=cate_ocu)) %>% 
-      select(year,trim,PROV,EDAD5,SEXO1,NFORMA, NAC1, OCUP1)
+      mutate(sector =if(input$ocu_act == "Ocupación (CNO)"){OCUP1}else{ACT1}) %>% 
+      select(year,trim,PROV,EDAD5,SEXO1,NFORMA, NAC1, sector)
 
     #filtrar
     data_NA1 %>% 
@@ -154,12 +170,12 @@ server <- function(input, output) {
              else if(input$select_vari1=="SEXO1"){SEXO1}
              else if(input$select_vari1=="NAC1"){NAC1}
              else if(input$select_vari1=="NFORMA"){NFORMA}else{factor("", levels = "")}) %>%
-      group_by(year, vari_div, OCUP1) %>%
+      group_by(year, vari_div, sector) %>%
       summarise(n=n()) %>%
       mutate(muestra=n) %>% 
       mutate(freq=round(n/sum(n),3))%>%
       #filter(if (input$select_year==77){DUCON1=="6.Temporal"}else{TRUE}) %>% 
-      select(year, vari_div, OCUP1, muestra, freq)
+      select(year, vari_div, sector, muestra, freq)
     
   })
   
@@ -181,7 +197,7 @@ server <- function(input, output) {
       
       for (i in 1:length(eti)) {
         p <- plot_ly(data_graf1() %>% filter(vari_div==eti[i]), type = "pie", 
-                     values = ~freq, labels = ~OCUP1,
+                     values = ~freq, labels = ~sector,
                      marker = list(colors = c("red", "blue", "green", "orange", 
                                               "purple"), opacity=0.8)) %>% 
           layout(showlegend = F, title=as.character(eti[i]))
@@ -191,9 +207,9 @@ server <- function(input, output) {
     }
     else{
       p <- plot_ly(data_graf1(), x = ~factor(year), y = ~freq, 
-                   color = ~OCUP1, text = ~paste(OCUP1, ": ", scales::percent(freq)),
+                   color = ~sector, text = ~paste(sector, ": ", scales::percent(freq)),
                    type = "bar", marker = list(opacity = 0.8)) %>%
-        layout(showlegend = F, title = "Proporción de sector de ocupación",
+        layout(showlegend = F, title = "Proporción de sector",
                yaxis = list(title = "Proporción", tickformat = ".0%"), 
                xaxis = list(title = "Año"))
       plots[[1]] <- p
@@ -281,7 +297,20 @@ server <- function(input, output) {
     
   })
 
+
+  #---------------------------------------------------------------#  
   
+  #infobox trabajo publico
+  
+  data_graf3 <- reactive({
+    
+    Sys.sleep(1)
+    
+    #datos 
+    data_NA1 <- data1 %>% 
+      mutate(x=if(input$tipo_hora=="De contrato"){x=HORASP}else{HORASH}) %>% 
+      select(year,trim,PROV,EDAD5,SEXO1,HORASP, HORASH, x, comu)
+  })
  
   
 }

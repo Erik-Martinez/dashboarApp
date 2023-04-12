@@ -96,14 +96,17 @@ ui <- dashboardPage(
       
       tabItem("menu_sector_epa",h1("Sector de ocupación"),
               fluidRow(width=12,
-                       box( width = 2,
+                       box( width = 3,
                             title = "Inputs", status = "warning", background = "blue",
+                            radioGroupButtons("ocu_act",label = h3("Sistema de clasificaión"),
+                                              choices = c("Ocupación (CNO)", "Activación (CNAE)"),
+                                              justified = TRUE, status = "primary"),
                             selectInput("select_year1", h3("Año"), choices = year_list),
                             selectInput("select_trim1", h3("Trimestre"), choices=trim_list),
                             selectInput("select_prov1", h3("Provincia"), choices = prov_list),
                             selectInput("select_vari1", h3("Dividido por:"), 
                                         choices = list_vari)),
-                       box(width=10, solidHeader = T, collapsible = F, heightFill =T,
+                       box(width=9, solidHeader = T, collapsible = F, heightFill =T,
                            shinycssloaders::withSpinner(uiOutput("plots_ocupa")))),
               
               fluidRow(column(width=2), column(width=10,
@@ -136,9 +139,21 @@ ui <- dashboardPage(
               
       ),
       
-      tabItem("menu_publico",h1("Estadísticas de trabajdores del sector público")
+      tabItem("menu_publico",h1("Estadísticas de trabajdores del sector público"),
+              fluidRow(width=12,
+                       box( width = 3,
+                            title = "Inputs", status = "warning", background = "blue",
+                            selectInput("select_year2", h3("Año"), choices = year_listMod),
+                            selectInput("select_trim2", h3("Trimestre"), choices=trim_list),
+                            radioGroupButtons("med_mediana",label = "Horas de trabajo semanal",
+                                              choices = c("Media", "Mediana"),justified = TRUE,
+                                              status = "primary"),
+                            radioGroupButtons("tipo_hora",label = "Tipo horas de trabajo semanal",
+                                              choices = c("De contrato", "Reales"),justified = TRUE,
+                                              status = "primary")
+                       )
               
-      ),
+      )),
       
       tabItem("menu21",h1("Pagina 1 en construccion")),
       tabItem("menu22",h1("Pagina 2 en construccion")),
