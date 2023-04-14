@@ -1,6 +1,7 @@
 library(shinydashboard)
 library(tidyverse)
 library(data.table) # funcion fread() para cargar los datos pesados
+library(DT)#tablas mas interactivas
 library(gridExtra)#combinar graficas
 library(shinyWidgets) #opciones extra UI
 library(shinyjs) # simbolos de carga
@@ -35,6 +36,15 @@ prov_list <- list("Nacional"=77, "Araba/Álava"=1, "Albacete"=2,
                   "Tarragona"=43, "Teruel"=44, "Toledo"=45,"Valencia/València"=46,
                   "Valladolid"=47, "Bizkaia"=48, "Zamora"=49, "Zaragoza"=50, 
                   "Ceuta"=51, "Melilla"=52)
+prov_list <- list("Nacional"=77, "Araba", "Albacete", "Alacant", "Almería", "Ávila", "Badajoz", 
+                  "Illes Balears", "Barcelona", "Burgos", "Cáceres", "Cádiz", "Castelló", 
+                  "Ciudad Real", "Córdoba", "A Coruña", "Cuenca", "Girona", "Granada", 
+                  "Guadalajara", "Gipuzkoa", "Huelva", "Huesca", "Jaén", "León", 
+                  "Lleida", "La Rioja", "Lugo", "Madrid", "Málaga", "Murcia", "Navarra", 
+                  "Ourense", "Asturias", "Palencia", "Las Palmas", "Pontevedra", "Salamanca", 
+                  "Santa Cruz de Tenerife", "Cantabria", "Segovia", "Sevilla", "Soria", 
+                  "Tarragona", "Teruel", "Toledo", "València", "Valladolid", "Bizkaia", 
+                  "Zamora", "Zaragoza", "Ceuta", "Melilla")
 list_vari <- list("---"=999,"Grupos de Edad(5 años)"="EDAD5", "Sexo"="SEXO1", "Nacionalidad"="NAC1", 
                   "Nivel de estudios"="NFORMA")
 
@@ -108,7 +118,7 @@ ui <- dashboardPage(
                        box( width = 3,
                             title = "Inputs", status = "warning", background = "blue",
                             radioGroupButtons("ocu_act",label = h3("Sistema de clasificaión"),
-                                              choices = c("Ocupación (CNO)", "Activación (CNAE)"),
+                                              choices = c("Ocupación (CNO)", "Actividad (CNAE)"),
                                               justified = TRUE, status = "primary"),
                             selectInput("select_year1", h3("Año"), choices = year_list),
                             selectInput("select_trim1", h3("Trimestre"), choices=trim_list),
@@ -156,29 +166,37 @@ ui <- dashboardPage(
   
     #infobox trabajo publico (id)
       
-      tabItem("menu_publico",h1("Estadísticas de trabajdores del sector público"),
+      tabItem("menu_publico",h1("Estadísticas de trabajadores del sector público"),
               fluidRow(width=12,
                        box(width = 3,
                             title = "Inputs", status = "warning", background = "blue",
-                            selectInput("select_year3", h3("Año"), choices = year_listMod),
-                            selectInput("select_trim3", h3("Trimestre"), choices=trim_list),
-                            selectInput("select_prov3", h3("Provincia"), choices = prov_list),
-                            radioGroupButtons( inputId = "select_sexo", label = h3("Sexo"),
+                            selectInput("select_year3", h4("Año"), choices = year_list),
+                            selectInput("select_trim3", h4("Trimestre"), choices=trim_list),
+                            selectInput("select_prov3", h4("Provincia"), choices = prov_list),
+                            radioGroupButtons( inputId = "select_sexo", label = h4("Sexo"),
                                                choices = c("Ambos", "Hombre", "Mujer"),
                                                justified = TRUE)),
-                       box(width = 4, title = "% de trabajores por administración"),
+                       box(width = 4, title = "% de trabajores por tipo administración",
+                           solidHeader = T, collapsible = F, heightFill =T,
+                           shinycssloaders::withSpinner(plotlyOutput("plot_publi1"))),
                        
-                       box(width = 4, title = "% de trabajadors por nivel de estudio")
+                       box(width = 4, title = "% de trabajadores por nivel de estudio",
+                           solidHeader = T, collapsible = F, heightFill =T,
+                           shinycssloaders::withSpinner(plotlyOutput("plot_publi2")))
                        
               
       ),
       fluidRow(width=12,
-               column(width=2),
-               column(width=3, infoBox(width = 3, title = "% de trabajadores publicos")),
-               column(width=3, infoBox(width = 3, title = "% de trabajadores temporales")),
-               column(width=3, infoBox(width = 3, title = "% Horas medias de contrato"))
-               
-               )
+               valueBoxOutput("info_trab"),
+               valueBoxOutput("info_tiempo"),
+               valueBoxOutput("info_horas")
+               ),
+      
+      #column(width=3, infoBox(width = 3, title = "% de trabajadores publicos")),
+      #column(width=3, infoBox(width = 3, title = "% de trabajadores temporales")),
+      #column(width=3, infoBox(width = 3, title = "% Horas medias de contrato"))
+      
+      #fluidRow(column(width=2),column(width=10,box(width=10, title=div("Datos"),dataTableOutput("tabla_prueba"))))
       
       ),
       

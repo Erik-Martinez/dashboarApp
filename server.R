@@ -1,6 +1,7 @@
 library(shinydashboard)
 library(tidyverse)
 library(data.table) # funcion fread() para cargar los datos pesados
+library(DT)#tablas mas interactivas
 library(gridExtra)#combinar graficas
 library(shinyWidgets) #opciones extra UI
 library(shinyjs) # simbolos de carga
@@ -10,6 +11,7 @@ library(plotly)#graficos interactivos
 library(geojsonio)# cargar datos mapa
 library(htmltools)  # Used for constructing map labels using HTML
 library(leaflet)    # The map-making package
+library(sp) #usar formato large spatialPolygonsData
 
 
 server <- function(input, output) {
@@ -28,14 +30,15 @@ server <- function(input, output) {
                 y la minería, excepto operadores de instalaciones y maquinaria" ,
                 "Operadores de instalaciones y maquinaria, y montadores",
                 "Ocupaciones elementales. Trabajadores no cualificados")
-  cate_situ <- c("Agricultura, ganadería, silvicultura y pesca",
+  cate_act <- c("Agricultura, ganadería, silvicultura y pesca",
                  "Industria de la alimentación, textil, cuero, madera y papel",
                  "Industrias extractivas, refino de petróleo, industria química, 
                  farmacéutica, industria del caucho y materias plásticas, 
                  suministro energía eléctrica, gas, vapor y aire acondicionado, 
                  suministro de agua, gestión de residuos. Metalurgia",
                  "Construcción de maquinaria, equipo eléctrico y material de transporte. 
-                 Instalación y reparación industrial","Construcción",
+                 Instalación y reparación industrial",
+                 "Construcción",
                  "Comercio al por mayor y al por menor y sus instalaciones y reparaciones. 
                  Reparación de automóviles, hostelería",
                  "Transporte y almacenamiento. Información y comunicaciones",
@@ -43,6 +46,13 @@ server <- function(input, output) {
                  servicios profesionales, científicos, administrativos y otros",
                  "Administración Pública, educación y actividades sanitarias",
                  "Otros servicios.")
+  cate_situ <- c("Empresario con asalariados",
+                 "Trabajador independiente o empresario sin asalariados", 
+                 "Miembro de una cooperativa", 
+                 "Ayuda en la empresa o negocio familiar", 
+                 "Asalariado sector público",
+                 "Asalariado sector privado",
+                 "Otra situación")
   age <- c("0 a 4 años", "5 a 9 años", "10 a 15 años", "16 a 19 años", 
            "20 a 24 años", "25 a 29 años", "30 a 34 años", "35 a 39 años", 
            "40 a 44 años", "45 a 49 años", "50 a 54 años", "55 a 59 años", 
@@ -74,8 +84,6 @@ server <- function(input, output) {
     mutate(SEXO1 = factor(SEXO1, labels=c("1.Hombre", "2.Mujer"))) %>% 
     mutate(NAC1 = factor(NAC1, labels=c("1.Española", "2.Española y doble nacionalidad", "3.Extranjera"))) %>% 
     mutate(NFORMA = factor(NFORMA)) %>% 
-    mutate(OCUP1 = factor(OCUP1,labels=cate_ocu)) %>%
-    mutate(ACT1 = factor(ACT1, labels = cate_situ)) %>% 
     mutate(SP = factor(SP, labels = admi)) %>% 
     mutate(HORASP = ifelse(HORASP != 9999,
                            as.numeric(str_sub(HORASP, 1, -3)) + as.numeric(str_sub(HORASP, -2)) / 60,
@@ -84,7 +92,11 @@ server <- function(input, output) {
                   as.numeric(str_sub(HORASH, 1, -3)) + as.numeric(str_sub(HORASH, -2)) / 60,
                   NA)) %>% 
     filter(AOI==3 | AOI==4)%>%
-    select(year,trim,comu,PROV,EDAD5,SEXO1,DUCON1,NFORMA, NAC1, OCUP1, ACT1, HORASP, HORASH)
+    mutate(OCUP1 = factor(OCUP1,labels=cate_ocu)) %>%
+    mutate(ACT1 = factor(ACT1, labels = cate_act)) %>% 
+    mutate(SITU = factor(SITU, labels = cate_situ)) %>% 
+    select(year,trim,comu,PROV,EDAD5,SEXO1,DUCON1,NFORMA, NAC1, OCUP1, ACT1, 
+           HORASP, HORASH, SP, SITU)
   
   # Carga los datos mapa
     # Obtención de los datos :https://public.opendatasoft.com/explore/dataset/provincias-espanolas/export/?sort=provincia&dataChart=eyJxdWVyaWVzIjpbeyJjb25maWciOnsiZGF0YXNldCI6InByb3ZpbmNpYXMtZXNwYW5vbGFzIiwib3B0aW9ucyI6eyJzb3J0IjoicHJvdmluY2lhIn19LCJjaGFydHMiOlt7ImFsaWduTW9udGgiOnRydWUsInR5cGUiOiJjb2x1bW4iLCJmdW5jIjoiQ09VTlQiLCJzY2llbnRpZmljRGlzcGxheSI6dHJ1ZSwiY29sb3IiOiIjRkY1MTVBIn1dLCJ4QXhpcyI6ImNjYWEiLCJtYXhwb2ludHMiOjUwLCJzb3J0IjoiIn1dLCJ0aW1lc2NhbGUiOiIiLCJkaXNwbGF5TGVnZW5kIjp0cnVlLCJhbGlnbk1vbnRoIjp0cnVlfQ%3D%3D&location=6,41.20346,-4.14185&basemap=jawg.light
@@ -161,12 +173,12 @@ server <- function(input, output) {
     
     Sys.sleep(1)
     
-    data_NA1 <- data1 %>%  
+    data_NA <- data1 %>%  
       mutate(sector =if(input$ocu_act == "Ocupación (CNO)"){OCUP1}else{ACT1}) %>% 
       select(year,trim,PROV,EDAD5,SEXO1,NFORMA, NAC1, sector)
 
     #filtrar
-    data_NA1 %>% 
+    data_NA %>% 
       filter(if (input$select_year1!=77){year==input$select_year1}else{TRUE},
              if(input$select_trim1!=77){trim == input$select_trim1 } else {TRUE},
              if(input$select_prov1!=77){PROV == input$select_prov1} else {TRUE}) %>% 
@@ -178,7 +190,10 @@ server <- function(input, output) {
       summarise(n=n()) %>%
       mutate(muestra=n) %>% 
       mutate(freq=round(n/sum(n),3))%>%
-      #filter(if (input$select_year==77){DUCON1=="6.Temporal"}else{TRUE}) %>% 
+      #mutate(color=colorFactor(palette = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", 
+       #                              "yellow","#9a352c", "#e377c2", "#7f7f7f", 
+        #                             "#bcbd22", "#17becf"), 
+         #                domain = unique(data_graf1()$sector))) %>% 
       select(year, vari_div, sector, muestra, freq)
     
   })
@@ -186,24 +201,30 @@ server <- function(input, output) {
   output$tabla_ocupa <- renderDataTable({
     data_graf1()
   })
+ 
   
   # Función para crear múltiples gráficos en una caja
   create_plot_box <- function(data) {
     
     plots <- list()
     
+    eti <- levels(data_graf1()$vari_div)
+    
+    colores <- colorFactor(palette = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", 
+                                       "#c5b0d5","#9a352c", "#e377c2", "#c7c7c7", 
+                                       "#bcbd22", "#17becf"), 
+                           domain = unique(data_graf1()$sector))
+
+    
+    if(length(eti)>13){eti <- eti[4:length(eti)]}
+    
+    
     if (input$select_year1 != 77) {
-      eti <- levels(data_graf1()$vari_div)
-      
-      if(length(eti)>13){eti <- eti[4:length(eti)]}
-      
-      
       
       for (i in 1:length(eti)) {
         p <- plot_ly(data_graf1() %>% filter(vari_div==eti[i]), type = "pie", 
                      values = ~freq, labels = ~sector,
-                     marker = list(colors = c("red", "blue", "green", "orange", 
-                                              "purple"), opacity=0.8)) %>% 
+                     marker = list(colors = ~colores(sector),opacity=0.8)) %>% 
           layout(showlegend = F, title=as.character(eti[i]))
         
         plots[[i]] <- p
@@ -248,12 +269,12 @@ server <- function(input, output) {
     Sys.sleep(1)
     
     #datos 
-    data_NA1 <- data1 %>% 
+    data_NA <- data1 %>% 
       mutate(x=if(input$tipo_hora=="De contrato"){x=HORASP}else{HORASH}) %>% 
       select(year,trim,PROV,EDAD5,SEXO1,HORASP, HORASH, x, comu)
     
     #filtrar
-    data_NA1 <- data_NA1 %>% 
+    data_NA <- data_NA %>% 
       filter(year==input$select_year2) %>% 
       filter(if(input$select_trim2!=77){trim == input$select_trim2} else {TRUE}) %>%
       filter(!is.na(x)) %>% 
@@ -264,7 +285,7 @@ server <- function(input, output) {
       select(comu, provincia, prom)
     
     # unimos datos
-    provin_horas <- merge(provin@data, data_NA1, by = "provincia", all.x = TRUE)
+    provin_horas <- merge(provin@data, data_NA, by = "provincia", all.x = TRUE)
     
     # recuperar el formato especial
     provin_merged <- merge(provin, provin_horas, by = "provincia")
@@ -311,9 +332,161 @@ server <- function(input, output) {
     Sys.sleep(1)
     
     #datos 
-    data_NA1 <- data1 %>% 
+    data_NA <- data1 %>% 
+      filter(SITU=="Asalariado sector público") %>% 
       select(year,trim,PROV,EDAD5,SEXO1,ACT1, SP, DUCON1)
+    
+    data_NA %>%
+      filter(if (input$select_year3!=77){year==input$select_year3}else{TRUE},
+             if(input$select_trim3!=77){trim == input$select_trim3 } else {TRUE},
+             if(input$select_prov3!=77){PROV == input$select_prov3} else {TRUE}) %>% 
+      filter(if(input$select_sexo=="Hombre"){SEXO1=="1.Hombre"}
+             else if(input$select_sexo=="Mujer"){SEXO1=="2.Mujer"}else{TRUE}) %>% 
+      group_by(year, SP) %>%
+      summarise(n=n()) %>%
+      mutate(muestra=n) %>% 
+      mutate(freq=round(n/sum(n),3))%>%
+      select(year, SP, muestra, freq)
+      
+      
+  })
+  
+  data_graf3_est <- reactive({
+    
+    Sys.sleep(1)
+    
+    #datos 
+    data_NA <- data1 %>% 
+      filter(SITU=="Asalariado sector público") %>% 
+      select(year,trim,PROV,EDAD5,SEXO1,ACT1, SP, DUCON1, NFORMA)
+    
+    data_NA %>%
+      filter(if (input$select_year3!=77){year==input$select_year3}else{TRUE},
+             if(input$select_trim3!=77){trim == input$select_trim3 } else {TRUE},
+             if(input$select_prov3!=77){PROV == input$select_prov3} else {TRUE}) %>% 
+      filter(if(input$select_sexo=="Hombre"){SEXO1=="1.Hombre"}
+             else if(input$select_sexo=="Mujer"){SEXO1=="2.Mujer"}else{TRUE}) %>% 
+      group_by(year, NFORMA) %>%
+      summarise(n=n()) %>%
+      mutate(muestra=n) %>% 
+      mutate(freq=round(n/sum(n),3))%>%
+      select(year, NFORMA, muestra, freq)
+    
+    
+  })
+  
+  data_graf3_info <- reactive({
+    Sys.sleep(1)
+    
+    #datos 
+    data_NA <- data1 %>% 
+      filter(SITU=="Asalariado sector público") %>% 
+      select(year,trim,PROV,EDAD5,SEXO1,ACT1, SP, DUCON1, NFORMA)
+  })
+  
+  
+  
+  output$plot_publi1 <- renderPlotly({
+    
+    if(input$select_year3!=77){
+      plot_ly(data_graf3() , type = "pie", 
+              values = ~freq, labels = ~SP,
+              marker = list(colors = c("red", "blue", "green", "orange", 
+                                       "purple"), opacity=0.8)) %>% 
+        layout(showlegend = F)
+    }
+    else{
+      plot_ly(data_graf3(), x = ~factor(year), y = ~freq, 
+              color = ~SP, text = ~paste(SP, ": ", scales::percent(freq)),
+              type = "bar", marker = list(opacity = 0.8)) %>%
+        layout(showlegend = F,
+               yaxis = list(title = "Proporción", tickformat = ".0%"), 
+               xaxis = list(title = "Año"))
+    }
+    
+    
+  })
+  
+  output$plot_publi2 <- renderPlotly({
+    
+    if(input$select_year3!=77){
+      plot_ly(data_graf3_est() , type = "pie", 
+              values = ~freq, labels = ~NFORMA,
+              marker = list(colors = c("red", "blue", "green", "orange", 
+                                       "purple"), opacity=0.8)) %>% 
+        layout(showlegend = F)
+    }
+    else{
+      plot_ly(data_graf3_est(), x = ~factor(year), y = ~freq, 
+              color = ~NFORMA, text = ~paste(NFORMA, ": ", scales::percent(freq)),
+              type = "bar", marker = list(opacity = 0.8)) %>%
+        layout(showlegend = F,
+               yaxis = list(title = "Proporción", tickformat = ".0%"), 
+               xaxis = list(title = "Año"))
+    }
+    
+    
   })
  
+  #output$tabla_prueba <- renderDataTable({data_graf3()})
+  
+  
+  data_graf3_box <- reactive({
+    data_NA1 <- data1 %>% 
+      mutate_at("DUCON1", ~replace(., is.na(.), 9)) %>%
+      mutate(DUCON1=factor(DUCON1, labels=c("1.Indefinido", "6.Temporal", "9.Otros"))) %>% 
+      filter(year==input$select_year3,
+             if(input$select_trim3!=77){trim == input$select_trim3 } else {TRUE},
+             if(input$select_prov3!=77){PROV == input$select_prov3} else {TRUE}) %>% 
+      filter(if(input$select_sexo=="Hombre"){SEXO1=="1.Hombre"}
+             else if(input$select_sexo=="Mujer"){SEXO1=="2.Mujer"}else{TRUE}) %>%
+      select(year,trim,EDAD5,SEXO1, DUCON1, HORASP, SITU)
+    
+    
+    trab <- data_NA1 %>%
+      group_by(year, SITU) %>%
+      summarise(n=n()) %>%
+      mutate(muestra=n) %>% 
+      mutate(freq=round(n/sum(n),3))%>%
+      filter(SITU=="Asalariado sector público") %>%
+      select(freq)
+    
+    tempo <- data_NA1 %>% 
+      group_by(year, SITU, DUCON1) %>%
+      summarise(n=n()) %>%
+      mutate(muestra=n) %>% 
+      mutate(freq=round(n/sum(n),3))%>%
+      filter(SITU=="Asalariado sector público") %>%
+      filter(DUCON1=="6.Temporal") %>% 
+      select(freq)
+    
+    horas <- data_NA1 %>% 
+      filter(!is.na(HORASP)) %>% 
+      group_by(year, SITU) %>%
+      summarise(prom= round(mean(HORASP),2)) %>%
+      filter(SITU=="Asalariado sector público") %>%
+      select(prom)
+    
+    info_boxs <- list(trab = trab$freq[1]*100, tiempo = tempo$freq[1]*100, 
+                     horas = horas$prom[1])
+    info_boxs
+    
+  })
+  
+  output$info_trab <- renderValueBox({
+    valueBox(paste0(data_graf3_box()$trab, "%"), "Trabajadores en el sector publico",
+      icon = icon("briefcase", lib = "glyphicon"))
+  })
+  
+  output$info_tiempo <- renderValueBox({
+    valueBox(paste0(data_graf3_box()$tiempo, "%"), "Trabajadores con contrato temporal",
+             icon = icon("send", lib = "glyphicon"))
+  })
+  
+  output$info_horas <- renderValueBox({
+    valueBox(paste0(data_graf3_box()$horas, "h"), "Horas semanales medias por contrato",
+             icon = icon("hourglass", lib = "glyphicon"))
+  })
+  
   
 }
