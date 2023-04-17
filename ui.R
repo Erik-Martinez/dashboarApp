@@ -73,6 +73,15 @@ ui <- dashboardPage(
                          menuSubItem('Sub Menu 2', tabName = 'menu22'),
                          menuSubItem('Sub Menu 3', tabName = 'menu23')
                 )
+    ),
+    # Agregar botón en el footer
+    tags$div(class = "sidebar-footer",
+             materialSwitch(
+               inputId = "galicia",
+               label = "Datos solo de Galicia", 
+               right = TRUE
+             )
+             
     )
   ),
   
@@ -93,10 +102,10 @@ ui <- dashboardPage(
                                         labelWidth = "80px", onLabel = "Si",
                                         offLabel = "No", onStatus = "success", 
                                         offStatus = "danger", value= 1),
-                            selectInput("select_year", h3("Año"), choices = year_list),
-                            selectInput("select_trim", h3("Trimestre"), choices=trim_list),
-                            selectInput("select_prov", h3("Provincia"), choices = prov_list),
-                            selectInput("select_vari", h3("Dividido por:"), 
+                            selectInput("select_year", h4("Año"), choices = year_list),
+                            selectInput("select_trim", h4("Trimestre"), choices=trim_list),
+                            selectInput("select_prov", h4("Provincia"), choices = prov_list),
+                            selectInput("select_vari", h4("Dividido por:"), 
                                         choices = list_vari)),
                        box(width=10, solidHeader = T, collapsible = F, heightFill = TRUE,
                            shinycssloaders::withSpinner(plotlyOutput("plot_contra", 
@@ -117,13 +126,13 @@ ui <- dashboardPage(
               fluidRow(width=12,
                        box( width = 3,
                             title = "Inputs", status = "warning", background = "blue",
-                            radioGroupButtons("ocu_act",label = h3("Sistema de clasificaión"),
+                            radioGroupButtons("ocu_act",label = h4("Sistema de clasificaión"),
                                               choices = c("Ocupación (CNO)", "Actividad (CNAE)"),
                                               justified = TRUE, status = "primary"),
-                            selectInput("select_year1", h3("Año"), choices = year_list),
-                            selectInput("select_trim1", h3("Trimestre"), choices=trim_list),
-                            selectInput("select_prov1", h3("Provincia"), choices = prov_list),
-                            selectInput("select_vari1", h3("Dividido por:"), 
+                            selectInput("select_year1", h4("Año"), choices = year_list),
+                            selectInput("select_trim1", h4("Trimestre"), choices=trim_list),
+                            selectInput("select_prov1", h4("Provincia"), choices = prov_list),
+                            selectInput("select_vari1", h4("Dividido por:"), 
                                         choices = list_vari)),
                        box(width=9, solidHeader = T, collapsible = F, heightFill =T,
                            shinycssloaders::withSpinner(uiOutput("plots_ocupa")))),
@@ -148,8 +157,8 @@ ui <- dashboardPage(
               fluidRow(width=12,
                        box( width = 3,
                             title = "Inputs", status = "warning", background = "blue",
-                            selectInput("select_year2", h3("Año"), choices = year_listMod),
-                            selectInput("select_trim2", h3("Trimestre"), choices=trim_list),
+                            selectInput("select_year2", h4("Año"), choices = year_listMod),
+                            selectInput("select_trim2", h4("Trimestre"), choices=trim_list),
                             radioGroupButtons("med_mediana",label = "Horas de trabajo semanal",
                               choices = c("Media", "Mediana"),justified = TRUE,
                               status = "primary"),

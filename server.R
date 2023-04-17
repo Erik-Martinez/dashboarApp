@@ -14,7 +14,7 @@ library(leaflet)    # The map-making package
 library(sp) #usar formato large spatialPolygonsData
 
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   #valores datos
   cate_ocu <- c("Ocupaciones militares. Fuerzas armadas",
@@ -101,6 +101,17 @@ server <- function(input, output) {
   # Carga los datos mapa
     # Obtención de los datos :https://public.opendatasoft.com/explore/dataset/provincias-espanolas/export/?sort=provincia&dataChart=eyJxdWVyaWVzIjpbeyJjb25maWciOnsiZGF0YXNldCI6InByb3ZpbmNpYXMtZXNwYW5vbGFzIiwib3B0aW9ucyI6eyJzb3J0IjoicHJvdmluY2lhIn19LCJjaGFydHMiOlt7ImFsaWduTW9udGgiOnRydWUsInR5cGUiOiJjb2x1bW4iLCJmdW5jIjoiQ09VTlQiLCJzY2llbnRpZmljRGlzcGxheSI6dHJ1ZSwiY29sb3IiOiIjRkY1MTVBIn1dLCJ4QXhpcyI6ImNjYWEiLCJtYXhwb2ludHMiOjUwLCJzb3J0IjoiIn1dLCJ0aW1lc2NhbGUiOiIiLCJkaXNwbGF5TGVnZW5kIjp0cnVlLCJhbGlnbk1vbnRoIjp0cnVlfQ%3D%3D&location=6,41.20346,-4.14185&basemap=jawg.light
   provin <- geojson_read("provincias-espanolas.geojson", what = "sp")
+
+#----------------------------------------------------------#   
+  
+  #cambios en UI
+  
+  observeEvent(input$galicia, {
+    if(input$galicia == TRUE){ updateSelectInput(session, "select_prov", "Provincia",
+                                                 c("Galicia"=77, "A Coruña", "Lugo", 
+                                                   "Ourense", "Pontevedra"))}
+  })
+  
  
 #----------------------------------------------------------#   
   
@@ -111,12 +122,15 @@ server <- function(input, output) {
     
     Sys.sleep(1)
     
+    #galicia
+    if(input$galicia==TRUE){data_NA <- data1 %>% filter(comu==12)}else{data_NA<-data1}
+    
     #conf. NA
     data_NA <- if(input$incluir_na==1){
-      data1 %>% mutate_at("DUCON1", ~replace(., is.na(.), 9)) %>%
+      data_NA %>% mutate_at("DUCON1", ~replace(., is.na(.), 9)) %>%
         mutate(DUCON1=factor(DUCON1, labels=c("1.Indefinido", "6.Temporal", "9.Otros")))}
     else {
-      data1 %>% filter(!is.na(DUCON1)) %>%
+      data_NA %>% filter(!is.na(DUCON1)) %>%
         mutate(DUCON1=factor(DUCON1, labels=c("1.Indefinido", "6.Temporal")))}
     
     
