@@ -1,5 +1,6 @@
 library(shinydashboard)
 library(tidyverse)
+library(lubridate)
 library(data.table) # funcion fread() para cargar los datos pesados
 library(DT)#tablas mas interactivas
 library(gridExtra)#combinar graficas
@@ -77,11 +78,11 @@ server <- function(input, output, session) {
 
   #carga de datos
   
-  data <-read.csv("muestra_epa.csv") #cambiar
+  data <-read.csv("data/muestra_epa.csv") #cambiar
   data1 <- data %>% 
     mutate(PROV = factor(PROV, labels = provincia)) %>% 
     mutate(EDAD5 = factor(EDAD5, labels = age)) %>% 
-    mutate(SEXO1 = factor(SEXO1, labels=c("1.Hombre", "2.Mujer"))) %>% 
+    mutate(SEXO1 = factor(SEXO1, labels=c("Hombre", "Mujer"))) %>% 
     mutate(NAC1 = factor(NAC1, labels=c("1.Española", "2.Española y doble nacionalidad", "3.Extranjera"))) %>% 
     mutate(NFORMA = factor(NFORMA)) %>% 
     mutate(SP = factor(SP, labels = admi)) %>% 
@@ -101,16 +102,83 @@ server <- function(input, output, session) {
   # Carga los datos mapa
     # Obtención de los datos :https://public.opendatasoft.com/explore/dataset/provincias-espanolas/export/?sort=provincia&dataChart=eyJxdWVyaWVzIjpbeyJjb25maWciOnsiZGF0YXNldCI6InByb3ZpbmNpYXMtZXNwYW5vbGFzIiwib3B0aW9ucyI6eyJzb3J0IjoicHJvdmluY2lhIn19LCJjaGFydHMiOlt7ImFsaWduTW9udGgiOnRydWUsInR5cGUiOiJjb2x1bW4iLCJmdW5jIjoiQ09VTlQiLCJzY2llbnRpZmljRGlzcGxheSI6dHJ1ZSwiY29sb3IiOiIjRkY1MTVBIn1dLCJ4QXhpcyI6ImNjYWEiLCJtYXhwb2ludHMiOjUwLCJzb3J0IjoiIn1dLCJ0aW1lc2NhbGUiOiIiLCJkaXNwbGF5TGVnZW5kIjp0cnVlLCJhbGlnbk1vbnRoIjp0cnVlfQ%3D%3D&location=6,41.20346,-4.14185&basemap=jawg.light
   provin <- geojson_read("provincias-espanolas.geojson", what = "sp")
+  
+  
+  #carga de datos afiliados divididos por datos sociodemograficos
+  afi_socio <- read.csv("data/AfiliadosMedios_12_23_Socio_Mod.csv")
+  
+  afi_socio1 <- afi_socio %>% 
+    mutate(PROV=factor(PROV, labels = c(provincia, "Nacional"))) %>% 
+    mutate(EDAD5=factor(EDAD5, labels = c(age[4:length(age)], "Total"))) %>% 
+    mutate(SEXO=factor(SEXO, labels = c("Hombre", "Mujer", "Total")))%>% 
+    mutate(date = ym(periodo))
+  
+  #cargar datos afiliados por sector
+  
+  cate_act_ampliado <- c("AGRICULTURA, GANADERÍA, SILVICULTURA Y PESCA", 
+                         "INDUSTRIAS EXTRACTIVAS", "INDUSTRIA MANUFACTURERA", 
+                         "SUMINISTRO DE ENERGÍA ELÉCTRICA, GAS, VAPOR Y AIRE ACONDICIONADO", 
+                         "SUMINISTRO DE AGUA, ACTIVIDADES DE SANEAMIENTO. GESTIÓN DE RESIDUOS Y DESCONTAMINACIÓN", 
+                         "CONSTRUCCIÓN", 
+                         "COMERCIO AL POR MAYOR Y AL POR MENOR; REPARACIÓN DE VEHÍCULOS DE MOTOR Y MOTOCICLETAS", 
+                         "TRANSPORTE Y ALMACENAMIENTO", "HOSTELERÍA", "INFORMACIÓN Y COMUNICACIONES", 
+                         "ACTIVIDADES FINANCIERAS Y DE SEGUROS", "ACTIVIDADES INMOBILIARIAS", 
+                         "ACTIVIDADES PROFESIONALES, CIENTÍFICAS Y TÉCNICAS", 
+                         "ACTIVIDADES ADMINISTRATIVAS Y SERVICIOS AUXILIARES", 
+                         "ADMINISTRACIÓN PÚBLICA Y DEFENSA; SEGURIDAD SOCIAL OBLIGATORIA", 
+                         "EDUCACIÓN", "ACTIVIDADES SANITARIAS Y DE SERVICIOS SOCIALES", 
+                         "ACTIVIDADES ARTÍSTICAS, RECREATIVAS Y DE ENTRETENIMIENTO", 
+                         "OTROS SERVICIOS", "ACTIVIDADES DE LOS HOGARES COMO EMPLEADORES", 
+                         "ORGANISMOS EXTRATERRITORIALES", "Total")
+  
+  afi_sector <- read.csv("data/AfiliadosMedios_12_23_sector_Mod(1).csv")
+  
+  afi_sector1 <- afi_sector %>% 
+    mutate(PROV=factor(PROV, labels = c(provincia, "Nacional"))) %>%
+    mutate(regimen=factor(regimen, labels=c("General", "Autonomos", "Total"))) %>%
+    mutate(actividad=factor(actividad, labels = cate_act_ampliado )) 
+  
+  #carga datos de cotizaciones
+  
+  cotizaciones <- read.csv("data/Cotizantes y base_18_23_Mod.csv")
+  
+  cotizantes1 <- cotizaciones %>% 
+    mutate(PROV=factor(PROV, labels = c(provincia, "Nacional"))) %>% 
+    mutate(SEXO=factor(SEXO, labels = c("Hombre", "Mujer", "Total"))) %>% 
+    mutate(regis=factor(regis, labels = c("Cotizantes", "Bases Medias")))
+    
+    
+    
 
 #----------------------------------------------------------#   
   
   #cambios en UI
+  prov_gali <- c("Galicia"=77, "A Coruña", "Lugo", "Ourense", "Pontevedra")
   
   observeEvent(input$galicia, {
-    if(input$galicia == TRUE){ updateSelectInput(session, "select_prov", "Provincia",
-                                                 c("Galicia"=77, "A Coruña", "Lugo", 
-                                                   "Ourense", "Pontevedra"))}
+    if(input$galicia == TRUE){ 
+      updateSelectInput(session, "select_prov", "Provincia",prov_gali)
+      updateSelectInput(session, "select_prov1", "Provincia",prov_gali)
+      updateSelectInput(session, "select_prov3", "Provincia",prov_gali)}
   })
+  
+#----------------------------------------------------------# 
+  
+  #función para generar gráficas a descargar
+  generar_archivo <- function(grafico) {
+    # Genera el archivo de descarga
+    output$descarga_grafico <- downloadHandler(
+      filename = function() {
+        paste0("grafico_", Sys.Date(), ".png")
+      },
+      content = function(file) {
+        # Genera el archivo PNG
+        png(file)
+        print(grafico)
+        dev.off()
+      }
+    )
+  }
   
  
 #----------------------------------------------------------#   
@@ -187,7 +255,10 @@ server <- function(input, output, session) {
     
     Sys.sleep(1)
     
-    data_NA <- data1 %>%  
+    #galicia
+    if(input$galicia==TRUE){data_NA <- data1 %>% filter(comu==12)}else{data_NA<-data1}
+    
+    data_NA <- data_NA %>%  
       mutate(sector =if(input$ocu_act == "Ocupación (CNO)"){OCUP1}else{ACT1}) %>% 
       select(year,trim,PROV,EDAD5,SEXO1,NFORMA, NAC1, sector)
 
@@ -345,8 +416,11 @@ server <- function(input, output, session) {
     
     Sys.sleep(1)
     
+    #galicia
+    if(input$galicia==TRUE){data_NA <- data1 %>% filter(comu==12)}else{data_NA<-data1}
+    
     #datos 
-    data_NA <- data1 %>% 
+    data_NA <- data_NA %>% 
       filter(SITU=="Asalariado sector público") %>% 
       select(year,trim,PROV,EDAD5,SEXO1,ACT1, SP, DUCON1)
     
@@ -354,8 +428,8 @@ server <- function(input, output, session) {
       filter(if (input$select_year3!=77){year==input$select_year3}else{TRUE},
              if(input$select_trim3!=77){trim == input$select_trim3 } else {TRUE},
              if(input$select_prov3!=77){PROV == input$select_prov3} else {TRUE}) %>% 
-      filter(if(input$select_sexo=="Hombre"){SEXO1=="1.Hombre"}
-             else if(input$select_sexo=="Mujer"){SEXO1=="2.Mujer"}else{TRUE}) %>% 
+      filter(if(input$select_sexo=="Hombre"){SEXO1=="Hombre"}
+             else if(input$select_sexo=="Mujer"){SEXO1=="Mujer"}else{TRUE}) %>% 
       group_by(year, SP) %>%
       summarise(n=n()) %>%
       mutate(muestra=n) %>% 
@@ -368,9 +442,11 @@ server <- function(input, output, session) {
   data_graf3_est <- reactive({
     
     Sys.sleep(1)
+    #galicia
+    if(input$galicia==TRUE){data_NA <- data1 %>% filter(comu==12)}else{data_NA<-data1}
     
     #datos 
-    data_NA <- data1 %>% 
+    data_NA <- data_NA %>% 
       filter(SITU=="Asalariado sector público") %>% 
       select(year,trim,PROV,EDAD5,SEXO1,ACT1, SP, DUCON1, NFORMA)
     
@@ -378,8 +454,8 @@ server <- function(input, output, session) {
       filter(if (input$select_year3!=77){year==input$select_year3}else{TRUE},
              if(input$select_trim3!=77){trim == input$select_trim3 } else {TRUE},
              if(input$select_prov3!=77){PROV == input$select_prov3} else {TRUE}) %>% 
-      filter(if(input$select_sexo=="Hombre"){SEXO1=="1.Hombre"}
-             else if(input$select_sexo=="Mujer"){SEXO1=="2.Mujer"}else{TRUE}) %>% 
+      filter(if(input$select_sexo=="Hombre"){SEXO1=="Hombre"}
+             else if(input$select_sexo=="Mujer"){SEXO1=="Mujer"}else{TRUE}) %>% 
       group_by(year, NFORMA) %>%
       summarise(n=n()) %>%
       mutate(muestra=n) %>% 
@@ -392,8 +468,11 @@ server <- function(input, output, session) {
   data_graf3_info <- reactive({
     Sys.sleep(1)
     
+    #galicia
+    if(input$galicia==TRUE){data_NA <- data1 %>% filter(comu==12)}else{data_NA<-data1}
+    
     #datos 
-    data_NA <- data1 %>% 
+    data_NA <- data_NA %>% 
       filter(SITU=="Asalariado sector público") %>% 
       select(year,trim,PROV,EDAD5,SEXO1,ACT1, SP, DUCON1, NFORMA)
   })
@@ -446,14 +525,17 @@ server <- function(input, output, session) {
   
   
   data_graf3_box <- reactive({
-    data_NA1 <- data1 %>% 
+    #galicia
+    if(input$galicia==TRUE){data_NA <- data1 %>% filter(comu==12)}else{data_NA<-data1}
+    
+    data_NA1 <- data_NA %>% 
       mutate_at("DUCON1", ~replace(., is.na(.), 9)) %>%
       mutate(DUCON1=factor(DUCON1, labels=c("1.Indefinido", "6.Temporal", "9.Otros"))) %>% 
       filter(year==input$select_year3,
              if(input$select_trim3!=77){trim == input$select_trim3 } else {TRUE},
              if(input$select_prov3!=77){PROV == input$select_prov3} else {TRUE}) %>% 
-      filter(if(input$select_sexo=="Hombre"){SEXO1=="1.Hombre"}
-             else if(input$select_sexo=="Mujer"){SEXO1=="2.Mujer"}else{TRUE}) %>%
+      filter(if(input$select_sexo=="Hombre"){SEXO1=="Hombre"}
+             else if(input$select_sexo=="Mujer"){SEXO1=="Mujer"}else{TRUE}) %>%
       select(year,trim,EDAD5,SEXO1, DUCON1, HORASP, SITU)
     
     
@@ -501,6 +583,58 @@ server <- function(input, output, session) {
     valueBox(paste0(data_graf3_box()$horas, "h"), "Horas semanales medias por contrato",
              icon = icon("hourglass", lib = "glyphicon"))
   })
+  
+  
+  #---------------------------------------------------------------#  
+  
+  #autonomos (id=4)
+  
+  
+  
+  
+
+  #---------------------------------------------------------------#
+  #                     Análisis de afiliados                     #
+  #---------------------------------------------------------------#
+  
+  #---------------------------------------------------------------#
+  
+  # afiliados por variables socio-demográficas (id=af1)
+  
+  data_graf_af1 <- reactive({
+    
+    Sys.sleep(1)
+    
+    afi_socio1 %>% 
+      filter(PROV %in% input$select_prov_af1) %>% 
+      filter(if(input$select_sexo_af1=="Hombre"){SEXO=="Hombre"} 
+             else if(input$select_sexo_af1=="Mujer"){SEXO=="Mujer"}else{SEXO=="Total"}) %>%
+      filter(date >= input$rango_fechas[1] & date <= input$rango_fechas[2]) %>% 
+      filter(EDAD5=="Total") %>% 
+      select(date, PROV, afi_med)
+  })
+  
+  output$tabla_af1 <- renderDataTable({
+    data_graf_af1()
+  })
+  
+  output$plot_af1 <- renderPlotly({
+    ggplot(data_graf_af1(), aes(x=date, y= afi_med, color=PROV))+
+      geom_line(linewidth =0.5)+
+      geom_point(size=0.5)+
+      #geom_text(aes(label=afi_med), vjust=-3, position= position_dodge(.9), size=1)+
+      theme(axis.text.x = element_text(hjust = 1),legend.position = "none")
+  })
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
   
   
 }

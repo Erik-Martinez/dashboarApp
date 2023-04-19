@@ -54,6 +54,7 @@ list_vari <- list("---"=999,"Grupos de Edad(5 años)"="EDAD5", "Sexo"="SEXO1", "
 #UI
 
 ui <- dashboardPage(
+  skin = "black",
   dashboardHeader(
     title = "Shiny"
   ),
@@ -65,11 +66,19 @@ ui <- dashboardPage(
                          menuSubItem('Tipos de contrato', tabName = 'menu_contra_epa'),
                          menuSubItem('Sector de ocupación', tabName = 'menu_sector_epa'),
                          menuSubItem('Horas', tabName = 'menu_horas'),
-                         menuSubItem('Trabajo publico', tabName = 'menu_publico')
+                         menuSubItem('Trabajo publico', tabName = 'menu_publico'),
+                         menuSubItem("Autónomos", tabName = "menu_autonomo")
                 ),
                 
-                menuItem("menu2_",tabName = "menu2" ,
-                         menuSubItem('Sub Menu 1', tabName = 'menu21'),
+                menuItem("Afiliados a la seguridad social",tabName = "menu2" ,
+                         menuSubItem('Sub Menu 3', tabName = 'menu23'),
+                         menuSubItem('por sexo y edad', tabName = 'menu_afi_socio'),
+                         menuSubItem('por sector de actividad', tabName = 'menu_afi_sector'),
+                         menuSubItem('Sub Menu 3', tabName = 'menu23')
+                ),
+                
+                menuItem("Análisis Tasa de Paro",tabName = "menu3" ,
+                         menuSubItem('Por', tabName = 'menu21'),
                          menuSubItem('Sub Menu 2', tabName = 'menu22'),
                          menuSubItem('Sub Menu 3', tabName = 'menu23')
                 )
@@ -173,7 +182,7 @@ ui <- dashboardPage(
   
   #---------------------------------------------------------------#  
   
-    #infobox trabajo publico (id)
+    #infobox trabajo publico (id=3)
       
       tabItem("menu_publico",h1("Estadísticas de trabajadores del sector público"),
               fluidRow(width=12,
@@ -201,16 +210,46 @@ ui <- dashboardPage(
                valueBoxOutput("info_horas")
                ),
       
-      #column(width=3, infoBox(width = 3, title = "% de trabajadores publicos")),
-      #column(width=3, infoBox(width = 3, title = "% de trabajadores temporales")),
-      #column(width=3, infoBox(width = 3, title = "% Horas medias de contrato"))
-      
-      #fluidRow(column(width=2),column(width=10,box(width=10, title=div("Datos"),dataTableOutput("tabla_prueba"))))
-      
       ),
-      
-      tabItem("menu21",h1("Pagina 1 en construccion")),
-      tabItem("menu22",h1("Pagina 2 en construccion")),
+  
+  tabItem("menu_autonomo",h1("Estadísticas de trabajadores autonomos")
+          ),
+  
+  #---------------------------------------------------------------#
+  #                     Análisis de afiliados                     #
+  #---------------------------------------------------------------#
+  
+  #---------------------------------------------------------------#
+  
+    # afiliados por variables socio-demográficas (id=a1)
+      tabItem("menu_afi_socio",h1("Datos de afiliados a la seguridad social por edad y sexo"),
+              fluidRow(#width=12,
+                       box(width = 12,
+                           title = "Inputs", status = "warning", background = "blue",
+                           column(width=2,pickerInput("select_prov_af1", h4("Provincia"), choices = prov_list,
+                                       multiple=TRUE, selected = prov_list,options = list(`actions-box` = TRUE))),
+                           column(width=3,radioGroupButtons( inputId = "select_sexo_af1", label = h4("Sexo"),
+                                              choices = c("Ambos", "Hombre", "Mujer"),
+                                              justified = TRUE)),
+                           column(width=3,dateRangeInput(inputId = "rango_fechas", 
+                                                         label = h4("Selecciona un rango de fechas:"),
+                                                         min=as.Date("2009-01-01"),
+                                                         max=as.Date("2023-03-31"),
+                                                         start = as.Date("2009-01-01"),
+                                                         end = as.Date("2023-03-31"),
+                                                         format = "yyyy-mm"
+                                                         ))
+                           )
+                       ),
+              fluidRow(box(width=12, solidHeader = T, collapsible = F, heightFill =T,
+                           shinycssloaders::withSpinner(plotlyOutput("plot_af1")))),
+              
+              fluidRow(column(width=2), column(width=10,
+                                               box(width=10,
+                                                   title=div("Datos"),
+                                                   dataTableOutput("tabla_af1"))))
+              ),
+      tabItem("menu_afi_sector",h1("Datos de afiliados a la seguridad social por sector de actividad")),
       tabItem("menu23",h1("Pagina 3 en construccion"))
       
       
