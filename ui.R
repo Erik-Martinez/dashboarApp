@@ -1,5 +1,6 @@
 library(shinydashboard)
 library(tidyverse)
+library(lubridate)
 library(data.table) # funcion fread() para cargar los datos pesados
 library(DT)#tablas mas interactivas
 library(gridExtra)#combinar graficas
@@ -7,46 +8,17 @@ library(shinyWidgets) #opciones extra UI
 library(shinyjs) # simbolos de carga
 library(shinycssloaders)#simbolos de carga 2
 library(plotly)#graficos interactivos
+library(forecast)#graficos de series temporales
 #grafica maps
 library(geojsonio)# cargar datos mapa
 library(htmltools)  # Used for constructing map labels using HTML
 library(leaflet)    # The map-making package
+library(sp) #usar formato large spatialPolygonsData
 
-# valores datos
-year_list <-list("Serie temporal"=77, "2005"=2005, "2006"=2006, "2007"=2007, 
-                 "2008"=2008, "2009"=2009, "2010"=2010, "2011"=2011, "2012"=2012,
-                 "2013"=2013, "2014"=2014, "2015"=2015, "2016"=2016, "2017"=2017,
-                 "2018"=2018, "2019"=2019, "2020"=2020, "2021"=2021, "2022"=2022)
-year_listMod <-list("2005"=2005, "2006"=2006, "2007"=2007, 
-                 "2008"=2008, "2009"=2009, "2010"=2010, "2011"=2011, "2012"=2012,
-                 "2013"=2013, "2014"=2014, "2015"=2015, "2016"=2016, "2017"=2017,
-                 "2018"=2018, "2019"=2019, "2020"=2020, "2021"=2021, "2022"=2022)
-trim_list <- list("Anual"=77,"T1"=1,"T2"=2,"T3"=3,"T4"=4)
-prov_list <- list("Nacional"=77, "Araba/Álava"=1, "Albacete"=2, 
-                  "Alicante/Alacant"=3, "Almería"=4,"Ávila"=5, "Badajoz"=6, 
-                  "Balears, Illes"=7, "Barcelona"=8, "Burgos"=9, "Cáceres"=10, 
-                  "Cádiz"=11, "Castellón/Castelló"=12, "Ciudad Real"=13, 
-                  "Córdoba"=14, "Coruña, A"=15, "Cuenca"=16, "Girona"=17, 
-                  "Granada"=18, "Guadalajara"=19, "Gipuzkoa"=20, "Huelva"=21, 
-                  "Huesca"=22, "Jaén"=23, "León"=24, "Lleida"=25, "Rioja, La"=26, 
-                  "Lugo"=27, "Madrid"=28, "Málaga"=29, "Murcia"=30, "Navarra"=31, 
-                  "Ourense"=32, "Asturias"=33, "Palencia"=34, "Palmas, Las"=35, 
-                  "Pontevedra"=36, "Salamanca"=37, "Santa Cruz de Tenerife"=38, 
-                  "Cantabria"=39, "Segovia"=40, "Sevilla"=41, "Soria"=42, 
-                  "Tarragona"=43, "Teruel"=44, "Toledo"=45,"Valencia/València"=46,
-                  "Valladolid"=47, "Bizkaia"=48, "Zamora"=49, "Zaragoza"=50, 
-                  "Ceuta"=51, "Melilla"=52)
-prov_list <- list("Nacional"=77, "Araba", "Albacete", "Alacant", "Almería", "Ávila", "Badajoz", 
-                  "Illes Balears", "Barcelona", "Burgos", "Cáceres", "Cádiz", "Castelló", 
-                  "Ciudad Real", "Córdoba", "A Coruña", "Cuenca", "Girona", "Granada", 
-                  "Guadalajara", "Gipuzkoa", "Huelva", "Huesca", "Jaén", "León", 
-                  "Lleida", "La Rioja", "Lugo", "Madrid", "Málaga", "Murcia", "Navarra", 
-                  "Ourense", "Asturias", "Palencia", "Las Palmas", "Pontevedra", "Salamanca", 
-                  "Santa Cruz de Tenerife", "Cantabria", "Segovia", "Sevilla", "Soria", 
-                  "Tarragona", "Teruel", "Toledo", "València", "Valladolid", "Bizkaia", 
-                  "Zamora", "Zaragoza", "Ceuta", "Melilla")
-list_vari <- list("---"=999,"Grupos de Edad(5 años)"="EDAD5", "Sexo"="SEXO1", "Nacionalidad"="NAC1", 
-                  "Nivel de estudios"="NFORMA")
+
+# carga valores datos
+
+source("global.R")
 
 
 #--------------------------------------
@@ -56,7 +28,7 @@ list_vari <- list("---"=999,"Grupos de Edad(5 años)"="EDAD5", "Sexo"="SEXO1", "
 ui <- dashboardPage(
   skin = "black",
   dashboardHeader(
-    title = "Shiny"
+    title = "APP"
   ),
   
   dashboardSidebar(
@@ -71,10 +43,11 @@ ui <- dashboardPage(
                 ),
                 
                 menuItem("Afiliados a la seguridad social",tabName = "menu2" ,
-                         menuSubItem('Sub Menu 3', tabName = 'menu23'),
+                         menuSubItem('Información', tabName = 'menu_info_afi'),
                          menuSubItem('por sexo y edad', tabName = 'menu_afi_socio'),
                          menuSubItem('por sector de actividad', tabName = 'menu_afi_sector'),
-                         menuSubItem('Sub Menu 3', tabName = 'menu23')
+                         menuSubItem('Serie temporal', tabName = 'menu_serie'),
+                         menuSubItem('cotizaciones', tabName = 'menu23')
                 ),
                 
                 menuItem("Análisis Tasa de Paro",tabName = "menu3" ,
@@ -226,8 +199,8 @@ ui <- dashboardPage(
               fluidRow(#width=12,
                        box(width = 12,
                            title = "Inputs", status = "warning", background = "blue",
-                           column(width=2,pickerInput("select_prov_af1", h4("Provincia"), choices = prov_list,
-                                       multiple=TRUE, selected = prov_list,options = list(`actions-box` = TRUE))),
+                           column(width=2,pickerInput("select_prov_af1", h4("Provincia"), choices = prov_list_mod,
+                                       multiple=TRUE, selected = prov_list_mod,options = list(`actions-box` = TRUE))),
                            column(width=3,radioGroupButtons( inputId = "select_sexo_af1", label = h4("Sexo"),
                                               choices = c("Ambos", "Hombre", "Mujer"),
                                               justified = TRUE)),
@@ -235,7 +208,7 @@ ui <- dashboardPage(
                                                          label = h4("Selecciona un rango de fechas:"),
                                                          min=as.Date("2009-01-01"),
                                                          max=as.Date("2023-03-31"),
-                                                         start = as.Date("2009-01-01"),
+                                                         start = as.Date("2012-01-01"),
                                                          end = as.Date("2023-03-31"),
                                                          format = "yyyy-mm"
                                                          ))
@@ -249,8 +222,29 @@ ui <- dashboardPage(
                                                    title=div("Datos"),
                                                    dataTableOutput("tabla_af1"))))
               ),
-      tabItem("menu_afi_sector",h1("Datos de afiliados a la seguridad social por sector de actividad")),
-      tabItem("menu23",h1("Pagina 3 en construccion"))
+      
+  tabItem("menu_afi_sector",h1("Datos de afiliados a la seguridad social por sector de actividad")),
+      
+  tabItem("menu_serie",h1("Series temporales por provincia y sector de actividad"),
+          fluidRow(width=12,
+                   box(width = 3,
+                       title = "Inputs", status = "warning", background = "blue",
+                       selectInput("select_prov_af3", h4("Provincia"), choices = prov_list_mod),
+                       selectInput("select_acti_af3", h4("Sector de actividad (CNAE)"), 
+                                   choices = list_act_ampliado),
+                       radioGroupButtons( inputId = "select_regimen_af3", label = h4("Regimen"),
+                                          choices = c("Total","General", "Autonomos"),
+                                          justified = TRUE)),
+                   box(width = 9,
+                       solidHeader = T, collapsible = F, heightFill =T,
+                       shinycssloaders::withSpinner(plotlyOutput("plot_af3_obs")),
+                       shinycssloaders::withSpinner(plotlyOutput("plot_af3_est")),
+                       shinycssloaders::withSpinner(plotlyOutput("plot_af3_tre")),
+                       shinycssloaders::withSpinner(plotlyOutput("plot_af3_error"))
+                       )
+                   ),
+          )
+
       
       
     )

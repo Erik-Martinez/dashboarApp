@@ -1,82 +1,12 @@
-library(shinydashboard)
-library(tidyverse)
-library(lubridate)
-library(data.table) # funcion fread() para cargar los datos pesados
-library(DT)#tablas mas interactivas
-library(gridExtra)#combinar graficas
-library(shinyWidgets) #opciones extra UI
-library(shinyjs) # simbolos de carga
-library(shinycssloaders)#simbolos de carga 2
-library(plotly)#graficos interactivos
-#grafica maps
-library(geojsonio)# cargar datos mapa
-library(htmltools)  # Used for constructing map labels using HTML
-library(leaflet)    # The map-making package
-library(sp) #usar formato large spatialPolygonsData
-
 
 server <- function(input, output, session) {
   
-  #valores datos
-  cate_ocu <- c("Ocupaciones militares. Fuerzas armadas",
-                "Directores y gerentes. Dirección de las empresas y de las  Administraciones Públicas",
-                "Técnicos y Profesionales científicos e intelectuales",
-                "Técnicos y Profesionales de apoyo",
-                "Empleados contables, administrativos y otros empleados de oficina. Empleados de tipo administrativo",
-                "Trabajadores de servicios de restauración, personales, protección y vendedores de comercio",
-                "Trabajadores cualificados en el sector agrícola, ganadero, forestal y pesquero. 
-                Trabajadores cualificados en la agricultura y en la pesca",
-                "Artesanos y trabajadores cualificados de las industrias manufactureras y la construcción. 
-                Artesanos y trabajadores cualificados de las industrias manufactureras, la construcción, 
-                y la minería, excepto operadores de instalaciones y maquinaria" ,
-                "Operadores de instalaciones y maquinaria, y montadores",
-                "Ocupaciones elementales. Trabajadores no cualificados")
-  cate_act <- c("Agricultura, ganadería, silvicultura y pesca",
-                 "Industria de la alimentación, textil, cuero, madera y papel",
-                 "Industrias extractivas, refino de petróleo, industria química, 
-                 farmacéutica, industria del caucho y materias plásticas, 
-                 suministro energía eléctrica, gas, vapor y aire acondicionado, 
-                 suministro de agua, gestión de residuos. Metalurgia",
-                 "Construcción de maquinaria, equipo eléctrico y material de transporte. 
-                 Instalación y reparación industrial",
-                 "Construcción",
-                 "Comercio al por mayor y al por menor y sus instalaciones y reparaciones. 
-                 Reparación de automóviles, hostelería",
-                 "Transporte y almacenamiento. Información y comunicaciones",
-                 "Intermediación financiera, seguros, actividades inmobiliarias, 
-                 servicios profesionales, científicos, administrativos y otros",
-                 "Administración Pública, educación y actividades sanitarias",
-                 "Otros servicios.")
-  cate_situ <- c("Empresario con asalariados",
-                 "Trabajador independiente o empresario sin asalariados", 
-                 "Miembro de una cooperativa", 
-                 "Ayuda en la empresa o negocio familiar", 
-                 "Asalariado sector público",
-                 "Asalariado sector privado",
-                 "Otra situación")
-  age <- c("0 a 4 años", "5 a 9 años", "10 a 15 años", "16 a 19 años", 
-           "20 a 24 años", "25 a 29 años", "30 a 34 años", "35 a 39 años", 
-           "40 a 44 años", "45 a 49 años", "50 a 54 años", "55 a 59 años", 
-           "60 a 64 años", "65 o más años")
-  estudios <-c("Analfabetos", "Educación primaria incompleta", "Educación primaria", 
-              "Primera etapa de educación secundaria", 
-              "Segunda etapa de educación secundaria. Orientación general", 
-               "Segunda etapa de educación secundaria. Orientación profesional (incluye educación postsecundaria no superior)", 
-                 "Educación superior")
-  provincia <- c("Araba", "Albacete", "Alacant", "Almería", "Ávila", "Badajoz", 
-                    "Illes Balears", "Barcelona", "Burgos", "Cáceres", "Cádiz", "Castelló", 
-                    "Ciudad Real", "Córdoba", "A Coruña", "Cuenca", "Girona", "Granada", 
-                    "Guadalajara", "Gipuzkoa", "Huelva", "Huesca", "Jaén", "León", 
-                    "Lleida", "La Rioja", "Lugo", "Madrid", "Málaga", "Murcia", "Navarra", 
-                    "Ourense", "Asturias", "Palencia", "Las Palmas", "Pontevedra", "Salamanca", 
-                    "Santa Cruz de Tenerife", "Cantabria", "Segovia", "Sevilla", "Soria", 
-                    "Tarragona", "Teruel", "Toledo", "València", "Valladolid", "Bizkaia", 
-                    "Zamora", "Zaragoza", "Ceuta", "Melilla")
-  admi <- c("No sabe", "Administración central", "Administración de la Seguridad Social",
-            "Administración de Comunidad Autónoma", "Administración local",
-            "Empresas públicas e Instituciones financieras públicas", "Otro tipo")
+  #carga valores datos
+  
+  source("global.R")
+  
 
-  #carga de datos
+  #carga de datos EPA
   
   data <-read.csv("data/muestra_epa.csv") #cambiar
   data1 <- data %>% 
@@ -115,28 +45,13 @@ server <- function(input, output, session) {
   
   #cargar datos afiliados por sector
   
-  cate_act_ampliado <- c("AGRICULTURA, GANADERÍA, SILVICULTURA Y PESCA", 
-                         "INDUSTRIAS EXTRACTIVAS", "INDUSTRIA MANUFACTURERA", 
-                         "SUMINISTRO DE ENERGÍA ELÉCTRICA, GAS, VAPOR Y AIRE ACONDICIONADO", 
-                         "SUMINISTRO DE AGUA, ACTIVIDADES DE SANEAMIENTO. GESTIÓN DE RESIDUOS Y DESCONTAMINACIÓN", 
-                         "CONSTRUCCIÓN", 
-                         "COMERCIO AL POR MAYOR Y AL POR MENOR; REPARACIÓN DE VEHÍCULOS DE MOTOR Y MOTOCICLETAS", 
-                         "TRANSPORTE Y ALMACENAMIENTO", "HOSTELERÍA", "INFORMACIÓN Y COMUNICACIONES", 
-                         "ACTIVIDADES FINANCIERAS Y DE SEGUROS", "ACTIVIDADES INMOBILIARIAS", 
-                         "ACTIVIDADES PROFESIONALES, CIENTÍFICAS Y TÉCNICAS", 
-                         "ACTIVIDADES ADMINISTRATIVAS Y SERVICIOS AUXILIARES", 
-                         "ADMINISTRACIÓN PÚBLICA Y DEFENSA; SEGURIDAD SOCIAL OBLIGATORIA", 
-                         "EDUCACIÓN", "ACTIVIDADES SANITARIAS Y DE SERVICIOS SOCIALES", 
-                         "ACTIVIDADES ARTÍSTICAS, RECREATIVAS Y DE ENTRETENIMIENTO", 
-                         "OTROS SERVICIOS", "ACTIVIDADES DE LOS HOGARES COMO EMPLEADORES", 
-                         "ORGANISMOS EXTRATERRITORIALES", "Total")
-  
   afi_sector <- read.csv("data/AfiliadosMedios_12_23_sector_Mod(1).csv")
   
   afi_sector1 <- afi_sector %>% 
     mutate(PROV=factor(PROV, labels = c(provincia, "Nacional"))) %>%
     mutate(regimen=factor(regimen, labels=c("General", "Autonomos", "Total"))) %>%
-    mutate(actividad=factor(actividad, labels = cate_act_ampliado )) 
+    mutate(actividad=factor(actividad, labels = cate_act_ampliado )) %>% 
+    mutate(date = ym(periodo))
   
   #carga datos de cotizaciones
   
@@ -154,12 +69,16 @@ server <- function(input, output, session) {
   
   #cambios en UI
   prov_gali <- c("Galicia"=77, "A Coruña", "Lugo", "Ourense", "Pontevedra")
+  prov_gali_sin <- c("A Coruña", "Lugo", "Ourense", "Pontevedra")
   
   observeEvent(input$galicia, {
     if(input$galicia == TRUE){ 
       updateSelectInput(session, "select_prov", "Provincia",prov_gali)
       updateSelectInput(session, "select_prov1", "Provincia",prov_gali)
-      updateSelectInput(session, "select_prov3", "Provincia",prov_gali)}
+      updateSelectInput(session, "select_prov3", "Provincia",prov_gali)
+      updatePickerInput(session, "select_prov_af1", "Provincia",prov_gali)
+      updateSelectInput(session, "select_prov_af3", "Provincia",prov_gali_sin)}
+    else{restaurar_selectores(session)}
   })
   
 #----------------------------------------------------------# 
@@ -605,7 +524,10 @@ server <- function(input, output, session) {
     
     Sys.sleep(1)
     
-    afi_socio1 %>% 
+    #galicia
+    if(input$galicia==TRUE){afi_socio_NA <- afi_socio1 %>% filter(comu==12)}else{afi_socio_NA <- afi_socio1}
+    
+    afi_socio_NA %>% 
       filter(PROV %in% input$select_prov_af1) %>% 
       filter(if(input$select_sexo_af1=="Hombre"){SEXO=="Hombre"} 
              else if(input$select_sexo_af1=="Mujer"){SEXO=="Mujer"}else{SEXO=="Total"}) %>%
@@ -628,9 +550,72 @@ server <- function(input, output, session) {
   
 
   
+  # afiliados por variables de sector (id=af2)
   
   
   
+  
+  
+  # series temporales de afiliados (id=af3)
+  
+  data_graf_af3 <- reactive({
+    
+    if(input$galicia==TRUE){afi_sector_NA <- afi_sector1 %>% filter(comu==12)}
+    else{afi_sector_NA<-afi_sector1}
+     
+    dat <-afi_sector_NA %>% 
+       filter(regimen==input$select_regimen_af3) %>% 
+       filter(PROV==input$select_prov_af3) %>% 
+       filter(actividad==input$select_acti_af3)%>%
+       select(afi_med)  
+     ts_data<- ts(dat, start=c(2009,1), frequency=12)  
+     decomp <- decompose(ts_data)
+     list(ts_data=ts_data, decomp=decomp)
+  })
+  
+   
+
+  
+  
+  output$plot_af3_obs <- renderPlotly({
+    data <- data_graf_af3()$ts_data
+    
+    forecast::autoplot(data, main="Serie Temporal Original") + 
+      ggtitle("Serie Temporal Original") +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      labs(y = "Valor")
+  })
+  
+  
+  output$plot_af3_est <- renderPlotly({
+    data <- data_graf_af3()$ts_data
+    
+    forecast::ggseasonplot(data, main="Estacionalidad") +
+    ggtitle("Estacionalidad") +
+    theme(plot.title = element_text(hjust = 0.5))
+  })
+  
+  output$plot_af3_tre <- renderPlotly({
+    data <- data_graf_af3()$decomp
+    
+    forecast::autoplot(data$trend, main="Tendencia") +
+      ggtitle("Tendencia") +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      labs(y = "Valor")
+  })
+  
+  output$plot_af3_error <- renderPlotly({
+    data <- data_graf_af3()$decomp
+    
+    forecast::  autoplot(data$random, main="Error") +
+      ggtitle("Error") +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      labs(y = "Valor")
+  })
+  
+
+
+
   
   
   
