@@ -90,7 +90,6 @@ cate_act <- c("Agricultura, ganadería, silvicultura y pesca",
                  servicios profesionales, científicos, administrativos y otros",
               "Administración Pública, educación y actividades sanitarias",
               "Otros servicios.")
-
 cate_situ <- c("Empresario con asalariados",
                "Trabajador independiente o empresario sin asalariados", 
                "Miembro de una cooperativa", 
@@ -98,15 +97,18 @@ cate_situ <- c("Empresario con asalariados",
                "Asalariado sector público",
                "Asalariado sector privado",
                "Otra situación")
+
 age <- c("0 a 4 años", "5 a 9 años", "10 a 15 años", "16 a 19 años", 
          "20 a 24 años", "25 a 29 años", "30 a 34 años", "35 a 39 años", 
          "40 a 44 años", "45 a 49 años", "50 a 54 años", "55 a 59 años", 
          "60 a 64 años", "65 o más años")
+
 estudios <-c("Analfabetos", "Educación primaria incompleta", "Educación primaria", 
              "Primera etapa de educación secundaria", 
              "Segunda etapa de educación secundaria. Orientación general", 
              "Segunda etapa de educación secundaria. Orientación profesional (incluye educación postsecundaria no superior)", 
              "Educación superior")
+
 provincia <- c("Araba", "Albacete", "Alacant", "Almería", "Ávila", "Badajoz", 
                "Illes Balears", "Barcelona", "Burgos", "Cáceres", "Cádiz", "Castelló", 
                "Ciudad Real", "Córdoba", "A Coruña", "Cuenca", "Girona", "Granada", 
@@ -116,6 +118,10 @@ provincia <- c("Araba", "Albacete", "Alacant", "Almería", "Ávila", "Badajoz",
                "Santa Cruz de Tenerife", "Cantabria", "Segovia", "Sevilla", "Soria", 
                "Tarragona", "Teruel", "Toledo", "València", "Valladolid", "Bizkaia", 
                "Zamora", "Zaragoza", "Ceuta", "Melilla")
+
+prov_gali <- c("Galicia", "A Coruña", "Lugo", "Ourense", "Pontevedra")
+prov_gali_sin <- c("A Coruña", "Lugo", "Ourense", "Pontevedra")
+
 admi <- c("No sabe", "Administración central", "Administración de la Seguridad Social",
           "Administración de Comunidad Autónoma", "Administración local",
           "Empresas públicas e Instituciones financieras públicas", "Otro tipo")
@@ -138,7 +144,14 @@ cate_act_ampliado <- c("AGRICULTURA, GANADERÍA, SILVICULTURA Y PESCA",
                        "ACTIVIDADES ARTÍSTICAS, RECREATIVAS Y DE ENTRETENIMIENTO", 
                        "OTROS SERVICIOS", "ACTIVIDADES DE LOS HOGARES COMO EMPLEADORES", 
                        "ORGANISMOS EXTRATERRITORIALES", "Total")
-
+cate_act_PIB <- c("Agricultura, ganadería, silvicultura y pesca", "Industria", 
+                   "Construcción", "Comercio, transporte y hostelería", 
+                  "Información y comunicaciones", "Actividades financieras y de seguros", 
+                  "Actividades inmobiliarias", 
+                  "Actividades profesionales, científicas y técnicas y otras", 
+                  "Administración pública, educación y sanidad", "
+                  Actividades artísticas, recreativas y otros servicios", 
+                  "TODAS LAS SECCIONES", "Secciones no incorporadas")
 #------------------------------------------------------------------------#
 
 #funciones de cambio de botones

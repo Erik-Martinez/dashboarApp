@@ -45,12 +45,13 @@ server <- function(input, output, session) {
   
   #cargar datos afiliados por sector
   
-  afi_sector <- read.csv("data/AfiliadosMedios_12_23_sector_Mod(1).csv")
+  afi_sector <- read.csv("data/AfiliadosMedios_12_23_sector_Mod(2).csv")
   
   afi_sector1 <- afi_sector %>% 
     mutate(PROV=factor(PROV, labels = c(provincia, "Nacional"))) %>%
     mutate(regimen=factor(regimen, labels=c("General", "Autonomos", "Total"))) %>%
     mutate(actividad=factor(actividad, labels = cate_act_ampliado )) %>% 
+    mutate(act_pib=factor(act_pib, labels=cate_act_PIB)) %>% 
     mutate(date = ym(periodo))
   
   #carga datos de cotizaciones
@@ -68,8 +69,7 @@ server <- function(input, output, session) {
 #----------------------------------------------------------#   
   
   #cambios en UI
-  prov_gali <- c("Galicia"=77, "A Coruña", "Lugo", "Ourense", "Pontevedra")
-  prov_gali_sin <- c("A Coruña", "Lugo", "Ourense", "Pontevedra")
+
   
   observeEvent(input$galicia, {
     if(input$galicia == TRUE){ 
@@ -77,7 +77,7 @@ server <- function(input, output, session) {
       updateSelectInput(session, "select_prov1", "Provincia",prov_gali)
       updateSelectInput(session, "select_prov3", "Provincia",prov_gali)
       updatePickerInput(session, "select_prov_af1", "Provincia",prov_gali)
-      updateSelectInput(session, "select_prov_af3", "Provincia",prov_gali_sin)}
+      updateSelectInput(session, "select_prov_af3", "Provincia",prov_gali)}
     else{restaurar_selectores(session)}
   })
   
@@ -560,14 +560,24 @@ server <- function(input, output, session) {
   
   data_graf_af3 <- reactive({
     
-    if(input$galicia==TRUE){afi_sector_NA <- afi_sector1 %>% filter(comu==12)}
-    else{afi_sector_NA<-afi_sector1}
+    if(input$galicia==TRUE){
+      afi_sector_NA <- afi_sector1 %>% 
+        filter(comu==12)}else{afi_sector_NA<-afi_sector1}
      
-    dat <-afi_sector_NA %>% 
+    
+    if(input$select_prov_af3=="Galicia"){dat <-afi_sector_NA %>% 
+        group_by(periodo,regimen,actividad) %>% 
+        summarise(afi_med=sum(afi_med)) %>% 
+        mutate(afi_med=as.numeric(afi_med)) %>% 
+        filter(regimen==input$select_regimen_af3) %>% 
+        filter(actividad==input$select_acti_af3)%>%
+        as.data.frame() %>%
+        select(afi_med)}else{dat <-afi_sector_NA %>% 
        filter(regimen==input$select_regimen_af3) %>% 
        filter(PROV==input$select_prov_af3) %>% 
        filter(actividad==input$select_acti_af3)%>%
-       select(afi_med)  
+       select(afi_med)}
+  
      ts_data<- ts(dat, start=c(2009,1), frequency=12)  
      decomp <- decompose(ts_data)
      list(ts_data=ts_data, decomp=decomp)
@@ -578,7 +588,7 @@ server <- function(input, output, session) {
   
   
   output$plot_af3_obs <- renderPlotly({
-    data <- data_graf_af3()$ts_data
+    data <- data_graf_af3()$ts_data 
     
     forecast::autoplot(data, main="Serie Temporal Original") + 
       ggtitle("Serie Temporal Original") +
@@ -590,24 +600,35 @@ server <- function(input, output, session) {
   output$plot_af3_est <- renderPlotly({
     data <- data_graf_af3()$ts_data
     
-    forecast::ggseasonplot(data, main="Estacionalidad") +
-    ggtitle("Estacionalidad") +
+    forecast::ggseasonplot(data, main="Estacionalidad por año") +
+    ggtitle("Estacionalidad por año") +
     theme(plot.title = element_text(hjust = 0.5))
   })
   
-  output$plot_af3_tre <- renderPlotly({
-    data <- data_graf_af3()$decomp
+  output$plot_af3_est_ano <- renderPlotly({
+    data <- data_graf_af3()$ts_data %>% seas() %>% seasonal()
     
-    forecast::autoplot(data$trend, main="Tendencia") +
+    forecast::autoplot(data, main="Estacionalidad") + 
+      ggtitle("Estacionalidad") +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      labs(y = "Valor")
+  })
+  
+  output$plot_af3_tre <- renderPlotly({
+    #data <- data_graf_af3()$decomp
+    data <- data_graf_af3()$ts_data %>% seas() %>% trendcycle()
+    
+    forecast::autoplot(data, main="Tendencia") +
       ggtitle("Tendencia") +
       theme(plot.title = element_text(hjust = 0.5)) +
       labs(y = "Valor")
   })
   
   output$plot_af3_error <- renderPlotly({
-    data <- data_graf_af3()$decomp
+    #data <- data_graf_af3()$decomp
+    data <- data_graf_af3()$ts_data %>% seas() %>% remainder()
     
-    forecast::  autoplot(data$random, main="Error") +
+    forecast::  autoplot(data, main="Error") +
       ggtitle("Error") +
       theme(plot.title = element_text(hjust = 0.5)) +
       labs(y = "Valor")

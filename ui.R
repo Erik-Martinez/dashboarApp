@@ -9,6 +9,7 @@ library(shinyjs) # simbolos de carga
 library(shinycssloaders)#simbolos de carga 2
 library(plotly)#graficos interactivos
 library(forecast)#graficos de series temporales
+library(seasonal)#descomposicion de series temporales
 #grafica maps
 library(geojsonio)# cargar datos mapa
 library(htmltools)  # Used for constructing map labels using HTML
@@ -238,14 +239,25 @@ ui <- dashboardPage(
                    box(width = 9,
                        solidHeader = T, collapsible = F, heightFill =T,
                        shinycssloaders::withSpinner(plotlyOutput("plot_af3_obs")),
-                       shinycssloaders::withSpinner(plotlyOutput("plot_af3_est")),
                        shinycssloaders::withSpinner(plotlyOutput("plot_af3_tre")),
-                       shinycssloaders::withSpinner(plotlyOutput("plot_af3_error"))
-                       )
+                       shinycssloaders::withSpinner(plotlyOutput("plot_af3_error")),
+                 
+                       ),
                    ),
+          fluidRow(width=12,
+                   column(width=3),
+                   column(width=9,
+                          tabBox(title="Estacionalidad", side = "right", width=12,
+                                 tabPanel("Mensual",
+                                          shinycssloaders::withSpinner(plotlyOutput("plot_af3_est"))),
+                                 tabPanel("Anual",      
+                                          shinycssloaders::withSpinner(plotlyOutput("plot_af3_est_ano"))))
+                   )
           )
+  )
 
-      
+    
+    
       
     )
   )
