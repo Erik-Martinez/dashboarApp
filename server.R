@@ -68,7 +68,7 @@ server <- function(input, output, session) {
 
 #----------------------------------------------------------#   
   
-  #cambios en UI
+  #cambios en UI por Galicia
 
   
   observeEvent(input$galicia, {
@@ -79,6 +79,16 @@ server <- function(input, output, session) {
       updatePickerInput(session, "select_prov_af1", "Provincia",prov_gali)
       updateSelectInput(session, "select_prov_af3", "Provincia",prov_gali)}
     else{restaurar_selectores(session)}
+  })
+  
+  #cambio en UI por sistema de clasificacion CNAE
+  
+  observeEvent(input$select_cnae_af3,{
+    if(input$select_cnae_af3=="Clasificacion 2"){ 
+      updateSelectInput(session, "select_acti_af3", "Sector de actividad (CNAE)",
+                        cate_act_PIB)}
+    else{updateSelectInput(session, "select_acti_af3", "Sector de actividad (CNAE)",
+                           list_act_ampliado)}
   })
   
 #----------------------------------------------------------# 
@@ -565,18 +575,41 @@ server <- function(input, output, session) {
         filter(comu==12)}else{afi_sector_NA<-afi_sector1}
      
     
-    if(input$select_prov_af3=="Galicia"){dat <-afi_sector_NA %>% 
-        group_by(periodo,regimen,actividad) %>% 
-        summarise(afi_med=sum(afi_med)) %>% 
-        mutate(afi_med=as.numeric(afi_med)) %>% 
+    if(input$select_prov_af3=="Galicia"){dat <-
+      if(input$select_cnae_af3=="Clasificacion 1"){
+        afi_sector_NA %>% 
+          group_by(periodo,regimen,actividad) %>% 
+          summarise(afi_med=sum(afi_med)) %>% 
+          mutate(afi_med=as.numeric(afi_med)) %>% 
+          filter(regimen==input$select_regimen_af3) %>% 
+          filter(actividad == input$select_acti_af3)%>%
+          as.data.frame() %>%
+          select(afi_med)  
+      }else{
+        afi_sector_NA %>% 
+          group_by(periodo,regimen,act_pib) %>% 
+          summarise(afi_med=sum(afi_med)) %>% 
+          mutate(afi_med=as.numeric(afi_med)) %>% 
+          filter(regimen==input$select_regimen_af3) %>% 
+          filter(act_pib == input$select_acti_af3)%>%
+          as.data.frame() %>%
+          select(afi_med)  
+      }
+    }else{dat <-
+      if(input$select_cnae_af3=="Clasificacion 1"){
+      afi_sector_NA %>% 
         filter(regimen==input$select_regimen_af3) %>% 
+        filter(PROV==input$select_prov_af3) %>% 
         filter(actividad==input$select_acti_af3)%>%
-        as.data.frame() %>%
-        select(afi_med)}else{dat <-afi_sector_NA %>% 
-       filter(regimen==input$select_regimen_af3) %>% 
-       filter(PROV==input$select_prov_af3) %>% 
-       filter(actividad==input$select_acti_af3)%>%
-       select(afi_med)}
+        select(afi_med)
+      }else{
+        afi_sector_NA %>% 
+          filter(regimen==input$select_regimen_af3) %>% 
+          filter(PROV==input$select_prov_af3) %>% 
+          filter(act_pib==input$select_acti_af3)%>%
+          select(afi_med)
+           
+        }}
   
      ts_data<- ts(dat, start=c(2009,1), frequency=12)  
      decomp <- decompose(ts_data)

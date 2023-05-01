@@ -149,8 +149,8 @@ cate_act_PIB <- c("Agricultura, ganadería, silvicultura y pesca", "Industria",
                   "Información y comunicaciones", "Actividades financieras y de seguros", 
                   "Actividades inmobiliarias", 
                   "Actividades profesionales, científicas y técnicas y otras", 
-                  "Administración pública, educación y sanidad", "
-                  Actividades artísticas, recreativas y otros servicios", 
+                  "Administración pública, educación y sanidad", 
+                  "Actividades artísticas, recreativas y otros servicios", 
                   "TODAS LAS SECCIONES", "Secciones no incorporadas")
 #------------------------------------------------------------------------#
 
