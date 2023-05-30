@@ -611,9 +611,11 @@ server <- function(input, output, session) {
            
         }}
   
-     ts_data<- ts(dat, start=c(2009,1), frequency=12)  
-     decomp <- decompose(ts_data)
-     list(ts_data=ts_data, decomp=decomp)
+     ts_data<- ts(dat, start=c(2009,1), frequency=12) 
+     data <- ts_data %>% seas() 
+       #ts_data %>% stl(s.window = "periodic")
+       
+     list(ts_data=ts_data, data=data)
   })
   
    
@@ -639,7 +641,7 @@ server <- function(input, output, session) {
   })
   
   output$plot_af3_est_ano <- renderPlotly({
-    data <- data_graf_af3()$ts_data %>% seas() %>% seasonal()
+    data <- data_graf_af3()$data %>% seasonal()
     
     forecast::autoplot(data, main="Estacionalidad") + 
       ggtitle("Estacionalidad") +
@@ -649,7 +651,7 @@ server <- function(input, output, session) {
   
   output$plot_af3_tre <- renderPlotly({
     #data <- data_graf_af3()$decomp
-    data <- data_graf_af3()$ts_data %>% seas() %>% trendcycle()
+    data <- data_graf_af3()$data %>% trendcycle()
     
     forecast::autoplot(data, main="Tendencia") +
       ggtitle("Tendencia") +
@@ -659,7 +661,7 @@ server <- function(input, output, session) {
   
   output$plot_af3_error <- renderPlotly({
     #data <- data_graf_af3()$decomp
-    data <- data_graf_af3()$ts_data %>% seas() %>% remainder()
+    data <- data_graf_af3()$data %>% remainder()
     
     forecast::  autoplot(data, main="Error") +
       ggtitle("Error") +
