@@ -36,7 +36,7 @@ ui <- dashboardPage(
     sidebarMenu(id="sbmenu",
                 menuItem("Análisis EPA",tabName = "menu1" ,
                          menuSubItem('Información', tabName = 'menu_info_epa'),
-                         menuSubItem('Tipos de contrato', tabName = 'menu_contra_epa'),
+                         menuSubItem('Temporalidad', tabName = 'menu_contra_epa'),
                          menuSubItem('Sector de ocupación', tabName = 'menu_sector_epa'),
                          menuSubItem('Horas', tabName = 'menu_horas'),
                          menuSubItem('Trabajo publico', tabName = 'menu_publico'),
@@ -47,14 +47,7 @@ ui <- dashboardPage(
                          menuSubItem('Información', tabName = 'menu_info_afi'),
                          menuSubItem('por sexo y edad', tabName = 'menu_afi_socio'),
                          menuSubItem('por sector de actividad', tabName = 'menu_afi_sector'),
-                         menuSubItem('Serie temporal', tabName = 'menu_serie'),
-                         menuSubItem('cotizaciones', tabName = 'menu23')
-                ),
-                
-                menuItem("Análisis Tasa de Paro",tabName = "menu3" ,
-                         menuSubItem('Por', tabName = 'menu21'),
-                         menuSubItem('Sub Menu 2', tabName = 'menu22'),
-                         menuSubItem('Sub Menu 3', tabName = 'menu23')
+                         menuSubItem('Serie temporal', tabName = 'menu_serie')
                 )
     ),
     # Agregar botón en el footer
@@ -186,8 +179,35 @@ ui <- dashboardPage(
       
       ),
   
-  tabItem("menu_autonomo",h1("Estadísticas de trabajadores autonomos")
+  #---------------------------------------------------------------#  
+  
+  #autonomos (id=4)
+  
+  tabItem("menu_autonomo",h1("Estadísticas de trabajadores autonomos"),
+          fluidRow(width=12,
+                   box(width = 3,
+                       title = "Inputs", status = "warning", background = "blue",
+                       selectInput("select_year4", h4("Año"), choices = year_list),
+                       selectInput("select_trim4", h4("Trimestre"), choices=trim_list),
+                       selectInput("select_prov4", h4("Provincia"), choices = prov_list),
+                       radioGroupButtons( inputId = "select_sexo4", label = h4("Sexo"),
+                                          choices = c("Ambos", "Hombre", "Mujer"),
+                                          justified = TRUE)),
+                   box(width = 4, title = "% de trabajores por sector CNAE",
+                       solidHeader = T, collapsible = F, heightFill =T,
+                       shinycssloaders::withSpinner(plotlyOutput("plot_publi_aut1"))),
+                   
+                   box(width = 4, title = "% de trabajadores por nivel de estudio",
+                       solidHeader = T, collapsible = F, heightFill =T,
+                       shinycssloaders::withSpinner(plotlyOutput("plot_publi_aut2")))
+                   
+                   
           ),
+          fluidRow(width=12,
+                   valueBoxOutput("info_trab_aut"),
+                   valueBoxOutput("info_horas_aut")
+          ),
+      ),
   
   #---------------------------------------------------------------#
   #                     Análisis de afiliados                     #
@@ -195,7 +215,7 @@ ui <- dashboardPage(
   
   #---------------------------------------------------------------#
   
-    # afiliados por variables socio-demográficas (id=a1)
+    # afiliados por variables socio-demográficas (id=af1)
       tabItem("menu_afi_socio",h1("Datos de afiliados a la seguridad social por edad y sexo"),
               fluidRow(#width=12,
                        box(width = 12,
@@ -205,6 +225,7 @@ ui <- dashboardPage(
                            column(width=3,radioGroupButtons( inputId = "select_sexo_af1", label = h4("Sexo"),
                                               choices = c("Ambos", "Hombre", "Mujer"),
                                               justified = TRUE)),
+                           column(width=3, selectInput("select_age_af1", h4("Edad"),choices=c("Total",age[4:length(age)]))),
                            column(width=3,dateRangeInput(inputId = "rango_fechas", 
                                                          label = h4("Selecciona un rango de fechas:"),
                                                          min=as.Date("2009-01-01"),
@@ -223,9 +244,39 @@ ui <- dashboardPage(
                                                    title=div("Datos"),
                                                    dataTableOutput("tabla_af1"))))
               ),
+  
+  
+  # afiliados por sector(id=af2)
+  tabItem("menu_afi_sector",h1("Datos de afiliados a la seguridad social por sector de actividad"),
+          fluidRow(#width=12,
+            box(width = 12,
+                title = "Inputs", status = "warning", background = "blue",
+                column(width=2,pickerInput("select_prov_af2", h4("Provincia"), choices = prov_list_mod,
+                                           multiple=TRUE, selected = prov_list_mod,options = list(`actions-box` = TRUE))),
+                column(width=2,selectInput("select_act_af2", h4("Sector actividad"), choices = list_act_ampliado)),
+                column(width=3, selectInput("select_reg_af2", h4("Regimen"), 
+                                            choices = c("General", "Autonomos", "Total"))),
+                column(width=3,dateRangeInput(inputId = "rango_fechas_af2", 
+                                              label = h4("Selecciona un rango de fechas:"),
+                                              min=as.Date("2009-01-01"),
+                                              max=as.Date("2023-03-31"),
+                                              start = as.Date("2012-01-01"),
+                                              end = as.Date("2023-03-31"),
+                                              format = "yyyy-mm")
+                       )
+            )
+          ),
+          fluidRow(box(width=12, solidHeader = T, collapsible = F, heightFill =T,
+                       shinycssloaders::withSpinner(plotlyOutput("plot_af2")))),
+          
+          fluidRow(column(width=2), column(width=10,
+                                           box(width=10,
+                                               title=div("Datos"),
+                                               dataTableOutput("tabla_af2"))))
+  ),
       
-  tabItem("menu_afi_sector",h1("Datos de afiliados a la seguridad social por sector de actividad")),
-      
+  
+  # series temporales (id=af3)
   tabItem("menu_serie",h1("Series temporales por provincia y sector de actividad"),
           fluidRow(width=12,
                    box(width = 3,
@@ -234,9 +285,9 @@ ui <- dashboardPage(
                        radioGroupButtons( inputId = "select_cnae_af3", label = h4("Seleciona:"),
                                           choices = c("Clasificacion 1","Clasificacion 2"),
                                           justified = TRUE),
-                       selectInput("select_acti_af3", h4("Sector de actividad (CNAE)"), 
+                       selectInput("select_acti_af3", h4("Sector de actividad"), 
                                    choices = list_act_ampliado),
-                       radioGroupButtons( inputId = "select_regimen_af3", label = h4("Regimen"),
+                       radioGroupButtons(inputId = "select_regimen_af3", label = h4("Regimen"),
                                           choices = c("Total","General", "Autonomos"),
                                           justified = TRUE)),
                    box(width = 9,
@@ -259,7 +310,7 @@ ui <- dashboardPage(
           )
   )
 
-    
+
     
       
     )

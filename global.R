@@ -119,7 +119,7 @@ provincia <- c("Araba", "Albacete", "Alacant", "Almería", "Ávila", "Badajoz",
                "Tarragona", "Teruel", "Toledo", "València", "Valladolid", "Bizkaia", 
                "Zamora", "Zaragoza", "Ceuta", "Melilla")
 
-prov_gali <- c("Galicia", "A Coruña", "Lugo", "Ourense", "Pontevedra")
+prov_gali <- list("Galicia"=77, "A Coruña", "Lugo", "Ourense", "Pontevedra")
 prov_gali_sin <- c("A Coruña", "Lugo", "Ourense", "Pontevedra")
 
 admi <- c("No sabe", "Administración central", "Administración de la Seguridad Social",
@@ -160,6 +160,7 @@ restaurar_selectores <- function(session){
   updateSelectInput(session, "select_prov", "Provincia", prov_list)
   updateSelectInput(session, "select_prov1", "Provincia", prov_list)
   updateSelectInput(session, "select_prov3", "Provincia", prov_list)
+  updateSelectInput(session, "select_prov4", "Provincia", prov_list)
   updatePickerInput(session, "select_prov_af1", "Provincia", prov_list_mod)
   updateSelectInput(session, "select_prov_af3", "Provincia", prov_list_mod)
 }

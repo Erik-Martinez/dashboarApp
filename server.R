@@ -8,8 +8,8 @@ server <- function(input, output, session) {
 
   #carga de datos EPA
   
-  data <-read.csv("data/muestra_epa.csv") #cambiar
-  data1 <- data %>% 
+  data1 <-read.csv("data/epa_data.csv") #cambiar
+  data1 <- data1 %>% 
     mutate(PROV = factor(PROV, labels = provincia)) %>% 
     mutate(EDAD5 = factor(EDAD5, labels = age)) %>% 
     mutate(SEXO1 = factor(SEXO1, labels=c("Hombre", "Mujer"))) %>% 
@@ -22,7 +22,7 @@ server <- function(input, output, session) {
     mutate(HORASH=ifelse(HORASH != 9999,
                   as.numeric(str_sub(HORASH, 1, -3)) + as.numeric(str_sub(HORASH, -2)) / 60,
                   NA)) %>% 
-    filter(AOI==3 | AOI==4)%>%
+    #filter(AOI==3 | AOI==4)%>%
     mutate(OCUP1 = factor(OCUP1,labels=cate_ocu)) %>%
     mutate(ACT1 = factor(ACT1, labels = cate_act)) %>% 
     mutate(SITU = factor(SITU, labels = cate_situ)) %>% 
@@ -76,6 +76,7 @@ server <- function(input, output, session) {
       updateSelectInput(session, "select_prov", "Provincia",prov_gali)
       updateSelectInput(session, "select_prov1", "Provincia",prov_gali)
       updateSelectInput(session, "select_prov3", "Provincia",prov_gali)
+      updateSelectInput(session, "select_prov4", "Provincia",prov_gali)
       updatePickerInput(session, "select_prov_af1", "Provincia",prov_gali)
       updateSelectInput(session, "select_prov_af3", "Provincia",prov_gali)}
     else{restaurar_selectores(session)}
@@ -215,6 +216,7 @@ server <- function(input, output, session) {
   output$tabla_ocupa <- renderDataTable({
     data_graf1()
   })
+  
  
   
   # Función para crear múltiples gráficos en una caja
@@ -228,10 +230,9 @@ server <- function(input, output, session) {
                                        "#c5b0d5","#9a352c", "#e377c2", "#c7c7c7", 
                                        "#bcbd22", "#17becf"), 
                            domain = unique(data_graf1()$sector))
-
+    
     
     if(length(eti)>13){eti <- eti[4:length(eti)]}
-    
     
     if (input$select_year1 != 77) {
       
@@ -245,13 +246,27 @@ server <- function(input, output, session) {
       }
     }
     else{
-      p <- plot_ly(data_graf1(), x = ~factor(year), y = ~freq, 
-                   color = ~sector, text = ~paste(sector, ": ", scales::percent(freq)),
-                   type = "bar", marker = list(opacity = 0.8)) %>%
-        layout(showlegend = F, title = "Proporción de sector",
-               yaxis = list(title = "Proporción", tickformat = ".0%"), 
-               xaxis = list(title = "Año"))
-      plots[[1]] <- p
+      if(input$select_vari1==999){
+        p <- plot_ly(data_graf1(), x = ~factor(year), y = ~freq, 
+                     color = ~sector, text = ~paste(sector, ": ", scales::percent(freq)),
+                     type = "bar", marker = list(opacity = 0.8)) %>%
+          layout(showlegend = F, title = "Proporción de sector",
+                 yaxis = list(title = "Proporción", tickformat = ".0%"), 
+                 xaxis = list(title = "Año"))
+        plots[[1]] <- p
+      }
+      else{
+        for (i in 1:length(eti)) {
+          p <- plot_ly(data_graf1() %>% filter(vari_div==eti[i]), type = "bar",
+                       x = ~factor(year), y = ~freq, 
+                       color = ~sector, text = ~paste(sector, ": ", scales::percent(freq)),
+                       values = ~freq, labels = ~sector,
+                       marker = list(colors = ~colores(sector),opacity=0.8)) %>% 
+            layout(showlegend = F, title=as.character(eti[i]))
+          
+          plots[[i]] <- p
+        }
+      }
     }
     
     
@@ -476,7 +491,7 @@ server <- function(input, output, session) {
       filter(SITU=="Asalariado sector público") %>%
       select(freq)
     
-    tempo <- data_NA1 %>% 
+    tiempo <- data_NA1 %>% 
       group_by(year, SITU, DUCON1) %>%
       summarise(n=n()) %>%
       mutate(muestra=n) %>% 
@@ -492,7 +507,7 @@ server <- function(input, output, session) {
       filter(SITU=="Asalariado sector público") %>%
       select(prom)
     
-    info_boxs <- list(trab = trab$freq[1]*100, tiempo = tempo$freq[1]*100, 
+    info_boxs <- list(trab = trab$freq[1]*100, tiempo = tiempo$freq[1]*100, 
                      horas = horas$prom[1])
     info_boxs
     
@@ -517,7 +532,165 @@ server <- function(input, output, session) {
   #---------------------------------------------------------------#  
   
   #autonomos (id=4)
+  data_graf4 <- reactive({
+    
+    Sys.sleep(1)
+    
+    #galicia
+    if(input$galicia==TRUE){data_NA <- data1 %>% filter(comu==12)}else{data_NA<-data1}
+    
+    #datos 
+    data_NA <- data_NA %>% 
+      filter(SITU=="Trabajador independiente o empresario sin asalariados") %>% 
+      select(year,trim,PROV,EDAD5,SEXO1,ACT1, SP, DUCON1)
+    
+    data_NA %>%
+      filter(if (input$select_year4!=77){year==input$select_year4}else{TRUE},
+             if(input$select_trim4!=77){trim == input$select_trim4 } else {TRUE},
+             if(input$select_prov4!=77){PROV == input$select_prov4} else {TRUE}) %>% 
+      filter(if(input$select_sexo4=="Hombre"){SEXO1=="Hombre"}
+             else if(input$select_sexo4=="Mujer"){SEXO1=="Mujer"}else{TRUE}) %>% 
+      group_by(year, ACT1) %>%
+      summarise(n=n()) %>%
+      mutate(muestra=n) %>% 
+      mutate(freq=round(n/sum(n),3))%>%
+      select(year, ACT1, muestra, freq)
+    
+    
+  })
   
+  data_graf4_est <- reactive({
+    
+    Sys.sleep(1)
+    #galicia
+    if(input$galicia==TRUE){data_NA <- data1 %>% filter(comu==12)}else{data_NA<-data1}
+    
+    #datos 
+    data_NA <- data_NA %>% 
+      filter(SITU=="Trabajador independiente o empresario sin asalariados") %>% 
+      select(year,trim,PROV,EDAD5,SEXO1,ACT1, SP, DUCON1, NFORMA)
+    
+    data_NA %>%
+      filter(if (input$select_year4!=77){year==input$select_year4}else{TRUE},
+             if(input$select_trim4!=77){trim == input$select_trim4 } else {TRUE},
+             if(input$select_prov4!=77){PROV == input$select_prov4} else {TRUE}) %>% 
+      filter(if(input$select_sexo4=="Hombre"){SEXO1=="Hombre"}
+             else if(input$select_sexo4=="Mujer"){SEXO1=="Mujer"}else{TRUE}) %>% 
+      group_by(year, NFORMA) %>%
+      summarise(n=n()) %>%
+      mutate(muestra=n) %>% 
+      mutate(freq=round(n/sum(n),3))%>%
+      select(year, NFORMA, muestra, freq)
+    
+    
+  })
+  
+  data_graf4_info <- reactive({
+    Sys.sleep(1)
+    
+    #galicia
+    if(input$galicia==TRUE){data_NA <- data1 %>% filter(comu==12)}else{data_NA<-data1}
+    
+    #datos 
+    data_NA <- data_NA %>% 
+      filter(SITU=="Trabajador independiente o empresario sin asalariados") %>% 
+      select(year,trim,PROV,EDAD5,SEXO1,ACT1, SP, DUCON1, NFORMA)
+  })
+  
+  
+  
+  output$plot_publi_aut1 <- renderPlotly({
+    
+    if(input$select_year4!=77){
+      plot_ly(data_graf4() , type = "pie", 
+              values = ~freq, labels = ~ACT1,
+              marker = list(colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "yellow",
+                                       "#9a352c", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"), 
+                            opacity=0.8)) %>% 
+        layout(showlegend = F)
+    }
+    else{
+      plot_ly(data_graf4(), x = ~factor(year), y = ~freq, 
+              color = ~ACT1, text = ~paste(ACT1, ": ", scales::percent(freq)),
+              type = "bar", marker = list(opacity = 0.8)) %>%
+        layout(showlegend = F,
+               yaxis = list(title = "Proporción", tickformat = ".0%"), 
+               xaxis = list(title = "Año"))
+    }
+    
+    
+  })
+  
+  output$plot_publi_aut2 <- renderPlotly({
+    
+    if(input$select_year4!=77){
+      plot_ly(data_graf4_est() , type = "pie", 
+              values = ~freq, labels = ~NFORMA,
+              marker = list(colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "yellow",
+                                       "#9a352c", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"), 
+                            opacity=0.8)) %>% 
+        layout(showlegend = F)
+    }
+    else{
+      plot_ly(data_graf4_est(), x = ~factor(year), y = ~freq, 
+              color = ~NFORMA, text = ~paste(NFORMA, ": ", scales::percent(freq)),
+              type = "bar", marker = list(opacity = 0.8)) %>%
+        layout(showlegend = F,
+               yaxis = list(title = "Proporción", tickformat = ".0%"), 
+               xaxis = list(title = "Año"))
+    }
+    
+    
+  })
+  
+  #output$tabla_prueba <- renderDataTable({data_graf4()})
+  
+  
+  data_graf4_box <- reactive({
+    #galicia
+    if(input$galicia==TRUE){data_NA <- data1 %>% filter(comu==12)}else{data_NA<-data1}
+    
+    data_NA1 <- data_NA %>% 
+      mutate_at("DUCON1", ~replace(., is.na(.), 9)) %>%
+      mutate(DUCON1=factor(DUCON1, labels=c("1.Indefinido", "6.Temporal", "9.Otros"))) %>% 
+      filter(year==input$select_year4,
+             if(input$select_trim4!=77){trim == input$select_trim4 } else {TRUE},
+             if(input$select_prov4!=77){PROV == input$select_prov4} else {TRUE}) %>% 
+      filter(if(input$select_sexo=="Hombre"){SEXO1=="Hombre"}
+             else if(input$select_sexo=="Mujer"){SEXO1=="Mujer"}else{TRUE}) %>%
+      select(year,trim,EDAD5,SEXO1, DUCON1, HORASH, SITU)
+    
+    
+    trab <- data_NA1 %>%
+      group_by(year, SITU) %>%
+      summarise(n=n()) %>%
+      mutate(muestra=n) %>% 
+      mutate(freq=round(n/sum(n),4))%>%
+      filter(SITU=="Trabajador independiente o empresario sin asalariados") %>%
+      select(freq)
+    
+    horas <- data_NA1 %>% 
+      filter(!is.na(HORASH)) %>% 
+      group_by(year, SITU) %>%
+      summarise(prom= round(mean(HORASH),2)) %>%
+      filter(SITU=="Trabajador independiente o empresario sin asalariados") %>%
+      select(prom)
+    
+    info_boxs <- list(trab = trab$freq[1]*100,horas = horas$prom[1])
+    info_boxs
+    
+  })
+  
+  output$info_trab_aut <- renderValueBox({
+    valueBox(paste0(data_graf4_box()$trab, "%"), "Trabajadores autonomos",
+             icon = icon("briefcase", lib = "glyphicon"))
+  })
+  
+  
+  output$info_horas_aut <- renderValueBox({
+    valueBox(paste0(data_graf4_box()$horas, "h"), "Horas semanales medias de trabajo",
+             icon = icon("hourglass", lib = "glyphicon"))
+  })
   
   
   
@@ -542,7 +715,7 @@ server <- function(input, output, session) {
       filter(if(input$select_sexo_af1=="Hombre"){SEXO=="Hombre"} 
              else if(input$select_sexo_af1=="Mujer"){SEXO=="Mujer"}else{SEXO=="Total"}) %>%
       filter(date >= input$rango_fechas[1] & date <= input$rango_fechas[2]) %>% 
-      filter(EDAD5=="Total") %>% 
+      filter(EDAD5==input$select_age_af1) %>% 
       select(date, PROV, afi_med)
   })
   
@@ -562,7 +735,34 @@ server <- function(input, output, session) {
   
   # afiliados por variables de sector (id=af2)
   
+  data_graf_af2 <- reactive({
+    
+    Sys.sleep(1)
+    
+    #galicia
+    if(input$galicia==TRUE){
+      afi_sector_NA <- afi_sector1 %>% 
+        filter(comu==12)}else{afi_sector_NA<-afi_sector1}
+    
+    afi_sector_NA %>% 
+      filter(PROV %in% input$select_prov_af2) %>% 
+      filter(actividad == input$select_act_af2)%>%
+      filter(date >= input$rango_fechas_af2[1] & date <= input$rango_fechas_af2[2]) %>% 
+      filter(regimen==input$select_reg_af2) %>% 
+      select(date, PROV, afi_med)
+  })
   
+  output$tabla_af2 <- renderDataTable({
+    data_graf_af2()
+  })
+  
+  output$plot_af2 <- renderPlotly({
+    ggplot(data_graf_af2(), aes(x=date, y= afi_med, color=PROV))+
+      geom_line(linewidth =0.5)+
+      geom_point(size=0.5)+
+      #geom_text(aes(label=afi_med), vjust=-3, position= position_dodge(.9), size=1)+
+      theme(axis.text.x = element_text(hjust = 1),legend.position = "none")
+  })
   
   
   
@@ -602,11 +802,13 @@ server <- function(input, output, session) {
         filter(PROV==input$select_prov_af3) %>% 
         filter(actividad==input$select_acti_af3)%>%
         select(afi_med)
-      }else{
+     }else{
         afi_sector_NA %>% 
           filter(regimen==input$select_regimen_af3) %>% 
           filter(PROV==input$select_prov_af3) %>% 
           filter(act_pib==input$select_acti_af3)%>%
+          group_by(date)%>%
+          summarise(afi_med=sum(afi_med))%>%
           select(afi_med)
            
         }}
